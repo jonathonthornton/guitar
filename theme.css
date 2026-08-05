@@ -1,0 +1,332 @@
+/* Shared design system for chords.html, modes.html, and scales.html:
+   color palette, base reset, header/footer chrome, the "back to home" link,
+   and the pill-style radio control used by the key/type/mode selectors. */
+
+:root {
+  --bg: #0f0e0c;
+  --surface: #1a1814;
+  --surface2: #221f19;
+  --border: #2e2b25;
+  --amber: #c9a84c;
+  --amber-dim: #6b5828;
+  --cream: #e8e0d0;
+  --muted: #7a7060;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--cream);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+header h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(42px, 8vw, 80px);
+  letter-spacing: 0.06em;
+  color: var(--amber);
+  line-height: 1;
+  text-shadow: 0 0 60px rgba(201,168,76,0.3);
+}
+
+header p {
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+footer {
+  text-align: center;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.back-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 99999;
+  font-family: sans-serif;
+  font-size: 13px;
+  color: var(--amber);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+/* Pill-style radio control (key/type/mode selectors) — shared by modes.html
+   and scales.html; chords.html uses its own .type-radios control instead. */
+
+.control-group label {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 12px;
+}
+
+.pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+}
+
+.pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pill i {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.pill input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.pill:hover { color: var(--cream); border-color: var(--muted); }
+
+.pill:has(input:checked) {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--bg);
+  font-weight: 500;
+}
+
+.pill:has(input:focus-visible) {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.pill:has(input:disabled) {
+  color: var(--border);
+  border-color: var(--border);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pill input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
+/* Diagram/output display — shared by modes.html and scales.html. Each page's
+   own <style> keeps its .controls grid-template-areas (the control layouts
+   differ) and any circle-of-fifths/circle-segment hover-and-selected-state
+   colors that depend on whether it has a two-ring (major/minor) or
+   single-ring wheel. */
+
+.output { max-width: 980px; margin: 32px auto 0; }
+
+.shapes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.diagram-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 28px;
+  margin-bottom: 28px;
+}
+
+.diagram-card.shape-card {
+  padding: 20px;
+  margin-bottom: 0;
+}
+
+.diagram-card h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  margin-bottom: 4px;
+}
+
+.shape-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  margin-bottom: 2px;
+}
+
+.subtitle {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.notes-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.note-badge {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--cream);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 3px;
+}
+
+.note-badge.root {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--bg);
+  font-weight: 500;
+}
+
+.fretboard-scroll { overflow-x: auto; }
+svg.fretboard { display: block; }
+
+.legend-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px 28px;
+  max-width: 980px;
+  margin: 40px auto 28px;
+}
+
+.legend-title {
+  text-align: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+.legend-dot { width: 14px; height: 14px; border-radius: 50%; }
+
+.output-header {
+  max-width: 980px;
+  margin: 0 auto 8px;
+}
+
+.output-header h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+}
+
+.output-header .subtitle { margin-bottom: 0; }
+
+.shapes-count-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  max-width: 980px;
+  margin: 0 auto 16px;
+}
+
+.circle-container {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0 0 10px;
+}
+
+.stave-container {
+  margin-top: 4px;
+}
+
+#key-stave {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  margin: 0;
+}
+
+.stave-label {
+  text-align: left;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+#circle-of-fifths {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+}
+
+.circle-segment {
+  cursor: pointer;
+  transition: fill 0.15s ease;
+}
+
+.circle-text {
+  pointer-events: none;
+  user-select: none;
+}

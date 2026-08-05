@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guitar Modes Explorer — Fretboard Diagrams for All 7 Modes</title>
+<meta name="description" content="Explore all seven modal scales — Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, and Locrian — with an interactive piano key selector and fretboard diagrams.">
+<meta name="theme-color" content="#0f0e0c">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%230f0e0c%22/%3E%3Ctext%20x%3D%2250%22%20y%3D%2270%22%20font-family%3D%22Georgia%2Cserif%22%20font-size%3D%2258%22%20font-weight%3D%22bold%22%20fill%3D%22%23c9a84c%22%20text-anchor%3D%22middle%22%3EM%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+  body {
+    padding: 40px 24px 80px;
+  }
+
+  .controls {
+    max-width: 980px;
+    margin: 0 auto 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "key   stave"
+      "piano output";
+    gap: 32px 40px;
+  }
+
+  .control-group.control-key    { grid-area: key; }
+  .control-group.control-stave  { grid-area: stave; }
+  .control-group.control-piano  { grid-area: piano; }
+  .control-group.control-output { grid-area: output; }
+
+  @media (max-width: 700px) {
+    .controls {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "key"
+        "stave"
+        "piano"
+        "output";
+    }
+  }
+
+  /* .control-group label and the .pill* control come from theme.css. */
+
+  /* Piano key strip — mode selector, styled as an actual keyboard */
+  .piano-strip {
+    position: relative;
+    display: flex;
+    height: 172px;
+    max-width: 340px;
+    border: 1px solid var(--border);
+    border-radius: 4px 4px 8px 8px;
+    overflow: hidden;
+    background: #0a0908;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+  }
+
+  .piano-key {
+    position: relative;
+    flex: 1;
+    height: 100%;
+    background: linear-gradient(#f5efe0, #e8dfc9);
+    border-right: 1px solid #c9bea3;
+    border-radius: 0 0 5px 5px;
+    cursor: pointer;
+    z-index: 1;
+    transition: background 0.1s ease;
+  }
+
+  .piano-key:last-child { border-right: none; }
+  .piano-key:hover { background: linear-gradient(#efe7d4, #ddd2b6); }
+
+  .piano-key .key-note {
+    position: absolute;
+    top: 90px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: #3a3428;
+  }
+
+  .piano-key .key-roman {
+    position: absolute;
+    top: 105px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: #8a7c5f;
+  }
+
+  /* Mode name: rotated 90deg CCW to read bottom-to-top, horizontally centered
+     on the key. Pivoting on the label's own left-bottom corner (the start of
+     its un-rotated, left-justified text) means every mode name begins at the
+     same bottom anchor and grows upward — short names ("Dorian") and long
+     ones ("Mixolydian") all sit flush against the same baseline instead of
+     each being centered independently. The +6px left offset compensates for
+     the pivot sitting at the rotated strip's edge rather than its middle, so
+     the strip itself still lands centered on the key. The strip is tall
+     enough that even the longest name ("Mixolydian") clears the roman
+     numeral row with comfortable margin, rather than relying on a tight,
+     font-metric-sensitive fit. */
+  .piano-key .key-mode {
+    position: absolute;
+    left: calc(50% + 6px);
+    bottom: 6px;
+    width: 50px;
+    line-height: 11px;
+    text-align: left;
+    transform-origin: left bottom;
+    transform: rotate(-90deg);
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 8px;
+    letter-spacing: 0.02em;
+    color: #8a7c5f;
+  }
+
+  .piano-key.selected {
+    background: linear-gradient(var(--amber), #b8933f);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
+  }
+
+  .piano-key.selected .key-note { color: var(--bg); font-weight: 700; }
+  .piano-key.selected .key-roman { color: rgba(15,14,12,0.55); }
+  .piano-key.selected .key-mode { color: var(--bg); font-weight: 500; }
+
+  /* Decorative black keys, positioned in the standard piano pattern (no key
+     between the 3rd/4th or 7th/8th white keys) — purely illustrative, so the
+     strip reads as a real keyboard regardless of which key is selected. */
+  .black-key {
+    position: absolute;
+    top: 0;
+    width: 8.6%;
+    height: 50%;
+    background: linear-gradient(#2a2620, #0c0a08);
+    border: 1px solid #000;
+    border-top: none;
+    border-radius: 0 0 3px 3px;
+    z-index: 2;
+    pointer-events: none;
+    box-shadow: inset 0 -8px 10px -6px rgba(255,255,255,0.08);
+  }
+
+  .piano-key input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .piano-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-top: 10px;
+    max-width: 340px;
+  }
+
+  /* .output, .shapes-grid, .diagram-card, .shape-title, .subtitle,
+     .notes-row, .note-badge, .fretboard-scroll/svg.fretboard,
+     .legend-panel/.legend-title/.legend/.legend-item/.legend-dot,
+     .output-header, .shapes-count-label, .circle-container,
+     .stave-container, #key-stave, .stave-label, #circle-of-fifths (base),
+     .circle-segment (base), and .circle-text come from theme.css. */
+
+  /* Circle of Fifths — single ring (parent key signature only) */
+  .circle-segment:hover { fill: var(--amber-dim); }
+  .circle-segment.selected { fill: var(--amber); }
+</style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&larr; Toolkit Home</a>
+
+<header>
+  <h1>Guitar Modes</h1>
+  <p>Modal Scale &amp; Fretboard Explorer</p>
+</header>
+
+<div class="controls">
+  <div class="control-group control-key">
+    <label>Key</label>
+    <div class="circle-container">
+      <svg id="circle-of-fifths" width="450" height="450" viewBox="0 0 400 400"></svg>
+    </div>
+  </div>
+
+  <div class="control-group control-stave">
+    <label>Staff</label>
+    <div class="stave-container">
+      <svg id="key-stave" viewBox="0 0 560 173.33"></svg>
+      <div class="stave-label" id="stave-label"></div>
+    </div>
+  </div>
+
+  <div class="control-group control-piano">
+    <label>Mode</label>
+    <div class="piano-strip" id="piano-strip"></div>
+    <div class="piano-hint">Select start note within selected key.</div>
+  </div>
+
+  <div class="control-group control-output">
+    <label>Output</label>
+    <div class="pill-group" id="output-mode-group">
+      <label class="pill" data-mode="full">
+        <input type="radio" name="output-mode" value="full" checked>
+        <i class="ti ti-square" aria-hidden="true"></i>
+        <span class="pill-text">Full</span>
+      </label>
+      <label class="pill" data-mode="shapes">
+        <input type="radio" name="output-mode" value="shapes">
+        <i class="ti ti-layout-grid" aria-hidden="true"></i>
+        <span class="pill-text">Shapes</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<div class="output" id="output">
+</div>
+
+<script src="lib/svg-utils.js"></script>
+<script src="lib/theory.js"></script>
+<script src="lib/circle-of-fifths.js"></script>
+<script src="lib/stave.js"></script>
+<script src="lib/fretboard.js"></script>
+<script>
+// ── Music Theory ─────────────────────────────────────────────────────────────
+// NOTES, LETTERS, LETTER_SEMITONE, LETTER_INDEX, noteIndex, buildDiatonicScale,
+// formatSpelledNote, ROOT_SPELLING_MAJOR, and getKeySignature come from theory.js.
+
+const INTERVALS = {
+  'major': [0,2,4,5,7,9,11],
+};
+
+// ── Modes ────────────────────────────────────────────────────────────────────
+// Each mode is the parent major scale started on a different degree. Interval
+// formulas (relative to the mode's own tonic) and degree names are the
+// standard, well-known values — mathematically identical to rotating the
+// major scale's own intervals, just expressed from the new starting point.
+const MODES = [
+  { name: 'Ionian',     roman: 'I' },
+  { name: 'Dorian',     roman: 'ii' },
+  { name: 'Phrygian',   roman: 'iii' },
+  { name: 'Lydian',     roman: 'IV' },
+  { name: 'Mixolydian', roman: 'V' },
+  { name: 'Aeolian',    roman: 'vi' },
+  { name: 'Locrian',    roman: 'vii°' },
+];
+
+const MODE_INTERVALS = {
+  Ionian:     [0,2,4,5,7,9,11],
+  Dorian:     [0,2,3,5,7,9,10],
+  Phrygian:   [0,1,3,5,7,8,10],
+  Lydian:     [0,2,4,6,7,9,11],
+  Mixolydian: [0,2,4,5,7,9,10],
+  Aeolian:    [0,2,3,5,7,8,10],
+  Locrian:    [0,1,3,5,6,8,10],
+};
+
+const MODE_DEGREE_NAMES = {
+  Ionian:     ['Root','2','3','4','5','6','7'],
+  Dorian:     ['Root','2','b3','4','5','6','b7'],
+  Phrygian:   ['Root','b2','b3','4','5','b6','b7'],
+  Lydian:     ['Root','2','3','#4','5','6','7'],
+  Mixolydian: ['Root','2','3','4','5','6','b7'],
+  Aeolian:    ['Root','2','b3','4','5','b6','b7'],
+  Locrian:    ['Root','b2','b3','4','b5','b6','b7'],
+};
+
+const DEGREE_COLORS = {
+  'Root': '#e8b62d',
+  '3':    '#3cb2e3', 'b3': '#3cb2e3',
+  '5':    '#a95a1e', 'b5': '#a95a1e', // Locrian's b5 is its own 5th degree, not an out-of-key note — same color family as a regular 5th.
+};
+const DEFAULT_TONE_COLOR = '#6e677e';
+
+function degreeColor(index, degreeNames) {
+  return DEGREE_COLORS[degreeNames[index]] || DEFAULT_TONE_COLOR;
+}
+
+// The parent major key's own 7 spelled scale degrees, in the key's own order
+// (not rotated). Every mode is a rotation of this exact array.
+function parentScaleSpelled(parentKey) {
+  const [letter, accidental] = ROOT_SPELLING_MAJOR[parentKey];
+  return buildDiatonicScale(letter, accidental, INTERVALS.major);
+}
+
+// Rotates the parent scale to start on the given mode's degree (0 = Ionian
+// ... 6 = Locrian), giving correctly-spelled note names for that mode with no
+// separate spelling engine needed — modes are just a different starting point
+// on the same 7 letters.
+function modalSpelledNotes(parentKey, modeIndex) {
+  const diatonic = parentScaleSpelled(parentKey);
+  const rotated = [...diatonic.slice(modeIndex), ...diatonic.slice(0, modeIndex)];
+  return rotated.map(formatSpelledNote);
+}
+
+function modalRootPc(parentKey, modeIndex) {
+  const parentPc = noteIndex(parentKey);
+  return (parentPc + INTERVALS.major[modeIndex]) % 12;
+}
+
+function modalScaleNotes(parentKey, modeIndex) {
+  const rootPc = modalRootPc(parentKey, modeIndex);
+  const modeName = MODES[modeIndex].name;
+  return MODE_INTERVALS[modeName].map(i => NOTES[(rootPc + i) % 12]);
+}
+
+// Octave-assigned notes for the stave — same tracking algorithm as the main
+// page's diatonic staff notes, just fed the rotated (not re-derived) parent
+// scale, since a mode's notes are always exactly the parent's own spelling.
+// absoluteStaffStep() comes from theory.js.
+
+function modalStaffNotes(parentKey, modeIndex) {
+  const diatonic = parentScaleSpelled(parentKey);
+  const rotated = [...diatonic.slice(modeIndex), ...diatonic.slice(0, modeIndex)];
+  let octave = 4;
+  let prevLetterIdx = null;
+  return rotated.map(entry => {
+    const letterIdx = LETTER_INDEX[entry.letter];
+    if (prevLetterIdx !== null && letterIdx < prevLetterIdx) octave++;
+    prevLetterIdx = letterIdx;
+    return {
+      letter: entry.letter,
+      accidental: entry.accidental,
+      octave,
+      name: formatSpelledNote(entry),
+      step: absoluteStaffStep(entry.letter, octave),
+    };
+  });
+}
+
+// ── Key signature (shared with the stave; modes share their parent's signature) ─
+// getKeySignature() comes from theory.js, called here as getKeySignature(parentKey)
+// which defaults to the major-key table.
+// SHARP_STAFF_POS/FLAT_STAFF_POS come from stave.js.
+
+// STAVE_SCALE/STAVE_LEFT_X/etc., stepY, drawLedgerLines, and renderMusicStave
+// come from stave.js.
+
+function renderStave(parentKey, modeIndex) {
+  const sig = getKeySignature(parentKey);
+  const modeIdx = modeIndex != null ? modeIndex : 0;
+  const modeName = MODES[modeIdx].name;
+  const degreeNames = MODE_DEGREE_NAMES[modeName];
+  const notes = modalStaffNotes(parentKey, modeIdx);
+
+  renderMusicStave({
+    sig,
+    notes,
+    degreeNames,
+    getLabelLines: () => {
+      const symbol = sig.type === 'sharp' ? '\u266F' : '\u266D';
+      const count = sig.letters.length;
+      const sigLine = count === 0 ? 'No sharps or flats' : `${count} ${sig.type}${count > 1 ? 's' : ''}: ${sig.letters.map(l => l + symbol).join(' ')}`;
+      const modalTonicName = modalSpelledNotes(parentKey, modeIdx)[0];
+      return [`${modalTonicName} ${modeName}`, sigLine];
+    },
+  });
+}
+
+// ── Circle of Fifths — single ring (parent key signature only) ─────────────────
+// MAJOR_KEYS and renderCircleOfFifths come from circle-of-fifths.js.
+// getPosition, createArcPath, and createSVGElement come from svg-utils.js.
+
+function renderCircle() {
+  renderCircleOfFifths({
+    selectedKey,
+    minorRing: false,
+    fontFamily: 'DM Sans, sans-serif',
+    centerLines: ['Circle of', 'Fifths'],
+    onSelect: (name) => selectKey(name),
+    onHover: (name) => renderStave(name, selectedModeIndex),
+    onHoverEnd: () => renderStave(selectedKey, selectedModeIndex),
+  });
+}
+
+// ── Piano key strip — mode selector ─────────────────────────────────────────────
+// The note-letter row is a fixed C-D-E-F-G-A-B reference, matching the fixed
+// decorative black-key shape below (which always draws as a recognizable
+// "C major" keyboard silhouette) — a key shaped and positioned exactly like C
+// always says "C", so the letter and the drawn shape never contradict each
+// other. What moves instead is the mode name: since every major scale's
+// letter names (ignoring accidentals) are just the natural alphabet rotated
+// to start on the tonic, "Ionian" always sits on the letter matching the
+// selected key's own tonic — e.g. selecting A moves Ionian onto the A key,
+// Dorian onto B, and so on — so the labels track the key the way you'd
+// intuitively expect, while the letters themselves stay put.
+const REFERENCE_NOTES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+
+function renderPianoStrip() {
+  const strip = document.getElementById('piano-strip');
+  strip.innerHTML = '';
+
+  const [parentLetter] = selectedKey ? ROOT_SPELLING_MAJOR[selectedKey] : ['C', 0];
+  const letterOffset = LETTER_INDEX[parentLetter];
+
+  REFERENCE_NOTES.forEach((letter, pos) => {
+    const modeIdx = ((pos - letterOffset) % 7 + 7) % 7;
+    const mode = MODES[modeIdx];
+
+    const key = document.createElement('label');
+    key.className = 'piano-key' + (modeIdx === selectedModeIndex ? ' selected' : '');
+
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'mode-select';
+    input.value = modeIdx;
+    input.checked = modeIdx === selectedModeIndex;
+
+    key.innerHTML = `
+      <div class="key-note">${letter}</div>
+      <div class="key-roman">${mode.roman}</div>
+      <div class="key-mode">${mode.name}</div>
+    `;
+    key.prepend(input);
+
+    key.addEventListener('click', () => selectMode(modeIdx));
+    key.addEventListener('mouseenter', () => renderStave(selectedKey, modeIdx));
+    key.addEventListener('mouseleave', () => renderStave(selectedKey, selectedModeIndex));
+
+    strip.appendChild(key);
+  });
+
+  // Decorative black keys in the standard piano pattern — positioned on the
+  // boundary after white keys 1, 2, 4, 5, 6 (no black key after the 3rd or
+  // 7th, matching the real E-F and B-C gaps). Purely illustrative: the strip
+  // always shows this pattern regardless of which key is selected, since the
+  // point is "these are the white keys" for any key, not a literal reading of
+  // the current key's own accidentals.
+  const whiteKeyWidth = 100 / 7;
+  const blackKeyWidth = 8.6;
+  [0, 1, 3, 4, 5].forEach(afterIdx => {
+    const boundary = (afterIdx + 1) * whiteKeyWidth;
+    const bk = document.createElement('div');
+    bk.className = 'black-key';
+    bk.style.left = `${boundary - blackKeyWidth / 2}%`;
+    strip.appendChild(bk);
+  });
+}
+
+// ── Fretboard ─────────────────────────────────────────────────────────────────
+// OPEN_NOTES/OPEN_ABS/NUM_STRINGS and getFretNote come from fretboard.js.
+
+// Builds a pitch-class -> {note, isRoot, color} lookup for the currently
+// selected key + mode. The note SPELLING is fixed by the parent key's own
+// diatonic spelling (every mode is just a different starting point on the
+// same 7 letters, so spelling never depends on which mode is selected) —
+// only isRoot/color vary, based on each note's degree relative to the
+// mode's own tonic.
+function buildNoteInfo(parentKey, modeIndex) {
+  const parentDiatonic = parentScaleSpelled(parentKey);
+  const parentPc = noteIndex(parentKey);
+  const modeName = MODES[modeIndex].name;
+  const degreeNames = MODE_DEGREE_NAMES[modeName];
+
+  const info = {};
+  parentDiatonic.forEach((entry, i) => {
+    const pc = (parentPc + INTERVALS.major[i]) % 12;
+    const degIdx = ((i - modeIndex) % 7 + 7) % 7; // degree relative to the mode's own tonic
+    info[NOTES[pc]] = {
+      note: formatSpelledNote(entry),
+      isRoot: degIdx === 0,
+      color: degreeColor(degIdx, degreeNames),
+    };
+  });
+  return info;
+}
+
+// makeDot, A_MINOR_PENT_BOXES/A_MINOR_PENT_ROOT_FRET/PENT_BOXES_REL, and
+// fretRangeOverlap come from fretboard.js.
+
+function pentatonicBoxesForRoot(rootPc) {
+  const base = ((rootPc - noteIndex('E')) % 12 + 12) % 12;
+  const natural = PENT_BOXES_REL.map(box => {
+    let frets = box.map(sf => sf.map(rel => rel + base));
+    if (Math.min(...frets.flat()) < 1) frets = box.map(sf => sf.map(rel => rel + base + 12));
+    return frets;
+  });
+  const chosen = [];
+  for (const frets of natural) {
+    let final = frets;
+    if (Math.min(...frets.flat()) > 12) {
+      const wrapped = frets.map(sf => sf.map(f => f - 12));
+      const wrappedMin = Math.min(...wrapped.flat());
+      const overlapsChosen = chosen.some(other => fretRangeOverlap(wrapped, other) > 1);
+      if (wrappedMin >= 1 && !overlapsChosen) final = wrapped;
+    }
+    chosen.push(final);
+  }
+  chosen.sort((a, b) => Math.min(...a.flat()) - Math.min(...b.flat()));
+  return chosen.map(frets => ({ anchor: Math.min(...frets[0]), frets }));
+}
+
+// Modes always use 7-note diatonic fill of the pentatonic-shaped box windows —
+// the same "5 Pattern" system as the main page's Diatonic type. The window
+// itself is anchored using whichever pentatonic family actually matches the
+// mode's character: major-family modes (Ionian, Lydian, Mixolydian — major
+// 3rd) use the wider major-pentatonic-shaped windows (borrowed from the
+// relative minor's anchor, same trick the main page uses for its Diatonic
+// major type); minor-family modes (Dorian, Phrygian, Aeolian, Locrian — minor
+// 3rd) anchor directly on their own tonic. Using the minor-shaped window for
+// every mode left some major-family scales' windows too narrow on certain
+// strings, cutting off notes a player would expect (e.g. G Mixolydian).
+//
+// Even with the right family, a raw pentatonic-sized window (tuned for 2
+// notes/string) is occasionally a fret too narrow to fully capture a 7-note
+// scale — some strings then end up with only 1 note instead of the expected
+// 2-3 (e.g. E Phrygian's 4th position was missing F on the low E string,
+// which sat just past the window's edge). fillWindow widens the window a
+// fret at a time, preferring whichever side most improves coverage, until
+// every string has at least 2 notes.
+function fillWindow(scaleNotes, lo, hi) {
+  const frets = [];
+  for (let s = 0; s < NUM_STRINGS; s++) {
+    const stringFrets = [];
+    for (let f = lo; f <= hi; f++) {
+      if (scaleNotes.includes(getFretNote(s, f))) stringFrets.push(f);
+    }
+    frets.push(stringFrets);
+  }
+  return frets;
+}
+
+function underfilledCount(frets) {
+  return frets.filter(sf => sf.length < 3).length;
+}
+
+// Before including a note at the highest fret on a string, check whether
+// that same pitch will already appear at the lowest fret on the next string
+// up. If so, drop it from the current (lower) string — otherwise the same
+// physical pitch shows up twice, once on each of two adjacent strings, which
+// reads as a duplicated note on the diagram.
+function dedupeAdjacentStrings(frets) {
+  const result = frets.map(sf => [...sf]);
+  for (let s = 0; s < NUM_STRINGS - 1; s++) {
+    const cur = result[s], next = result[s + 1];
+    if (!cur.length || !next.length) continue;
+    const curHighPitch = OPEN_ABS[s] + cur[cur.length - 1];
+    const nextLowPitch = OPEN_ABS[s + 1] + next[0];
+    if (curHighPitch === nextLowPitch) cur.pop();
+  }
+  return result;
+}
+
+// The five CAGED box shapes (fret positions per string) for a given parent
+// key, computed once and cached. Every mode of the same key shares the exact
+// same 7 pitches, so the shapes themselves never change between modes —
+// only the coloring/labeling (via buildNoteInfo) does. Previously the anchor
+// and window were recomputed per mode using that mode's own tonic, which
+// meant the actual fret positions shifted around as you cycled through
+// modes of the same key, not just the colors.
+let cachedShapesKey = null;
+let cachedShapes = null;
+
+function computeParentKeyBoxShapes(parentKey) {
+  if (cachedShapesKey === parentKey) return cachedShapes;
+
+  const parentPc = noteIndex(parentKey);
+  const scaleNotes = INTERVALS.major.map(i => NOTES[(parentPc + i) % 12]);
+  const anchorPc = ((parentPc - 3) % 12 + 12) % 12; // relative-minor anchor, gives well-spaced windows for a full 7-note fill
+  const boxes = pentatonicBoxesForRoot(anchorPc);
+
+  cachedShapes = boxes.map(box => {
+    const all = box.frets.flat();
+    const lo = Math.min(...all), hi = Math.max(...all);
+    const originalFrets = fillWindow(scaleNotes, lo, hi);
+    const maxSpan = 5; // keep the position within a reasonable hand stretch
+
+    // Prefer widening upward first — the natural direction to reach for one
+    // more note — then fall back to widening downward if that alone doesn't
+    // get every string to a full 3 notes.
+    let wideLo = lo, wideHi = hi;
+    while (underfilledCount(fillWindow(scaleNotes, wideLo, wideHi)) > 0 && (wideHi - wideLo) < maxSpan) {
+      wideHi += 1;
+    }
+    while (underfilledCount(fillWindow(scaleNotes, wideLo, wideHi)) > 0 && (wideHi - wideLo) < maxSpan && wideLo > 1) {
+      wideLo -= 1;
+    }
+    const widenedFrets = fillWindow(scaleNotes, wideLo, wideHi);
+
+    // Only apply the wider window to strings that actually needed it —
+    // strings that already had 3 notes in the original window keep those
+    // exact notes, so widening never pads an already-complete string with an
+    // unwanted 4th.
+    const frets = originalFrets.map((orig, s) => orig.length >= 3 ? orig : widenedFrets[s].slice(0, 3));
+
+    return dedupeAdjacentStrings(frets);
+  });
+  cachedShapesKey = parentKey;
+  return cachedShapes;
+}
+
+function computeModalBoxes(parentKey, noteInfo) {
+  const shapes = computeParentKeyBoxShapes(parentKey);
+  return shapes.map((frets, idx) => finalizeShape(frets, noteInfo, idx));
+}
+
+// finalizeShape comes from fretboard.js.
+
+// buildFretboardSVG comes from fretboard.js.
+function renderFullFretboard(scaleNotes, noteInfo) {
+  const dots = [];
+  for (let str = 0; str < NUM_STRINGS; str++) {
+    for (let f = 0; f <= 15; f++) {
+      const note = getFretNote(str, f);
+      if (scaleNotes.includes(note)) {
+        dots.push(makeDot(str, f, noteInfo));
+      }
+    }
+  }
+  return buildFretboardSVG(dots, { startFret: 0, endFret: 15, compact: false });
+}
+
+// renderShape comes from fretboard.js.
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+let selectedKey = null;       // parent major key, e.g. 'G'
+let selectedModeIndex = 0;    // 0 = Ionian ... 6 = Locrian
+let shapesMode = false;
+
+function selectKey(keyName) {
+  selectedKey = keyName;
+  renderCircle();
+  renderStave(keyName, selectedModeIndex);
+  renderPianoStrip();
+  generate();
+}
+
+function selectMode(i) {
+  selectedModeIndex = i;
+  renderStave(selectedKey, i);
+  renderPianoStrip();
+  generate();
+}
+
+document.querySelectorAll('#output-mode-group input[type="radio"]').forEach(input => {
+  input.addEventListener('change', () => {
+    shapesMode = input.value === 'shapes';
+    generate();
+  });
+});
+
+function generate() {
+  if (!selectedKey) return;
+  const modeName = MODES[selectedModeIndex].name;
+  const degreeNames = MODE_DEGREE_NAMES[modeName];
+  const rootPc = modalRootPc(selectedKey, selectedModeIndex);
+  const rootNote = NOTES[rootPc];
+
+  const parentPc = noteIndex(selectedKey);
+  const scaleNotes = INTERVALS.major.map(i => NOTES[(parentPc + i) % 12]); // mode-invariant: same 7 pitches for every mode of this key
+  const noteInfo = buildNoteInfo(selectedKey, selectedModeIndex);
+  const modeOrderChromatic = modalScaleNotes(selectedKey, selectedModeIndex); // mode's own tonic-first degree order, for badge ordering
+
+  const tightAccidental = s => s.replace(/([A-G])([♯♭])/g, '$1<span style="letter-spacing:0">$2</span>');
+  const symbolize = s => s.replace(/#/g, '♯').replace(/b/g, '♭');
+  const keyDisplay = tightAccidental(symbolize(noteInfo[rootNote].note));
+
+  const noteBadgesHTML = modeOrderChromatic.map((chromaticNote, i) => {
+    const info = noteInfo[chromaticNote];
+    const textColor = i === 0 ? '#0f0e0c' : '#e8e0d0';
+    return `<span class="${i===0?'note-badge root':'note-badge'}" title="${degreeNames[i]}" style="background:${info.color};color:${textColor};">${info.note}</span>`;
+  }).join('');
+
+  const legendItems = [];
+  const usedDegrees = new Set(degreeNames);
+  legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['Root']}"></div>Root</div>`);
+  if (usedDegrees.has('3') || usedDegrees.has('b3')) {
+    legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['3']}"></div>3rd</div>`);
+  }
+  if (usedDegrees.has('5') || usedDegrees.has('b5')) {
+    legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['5']}"></div>5th</div>`);
+  }
+  legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEFAULT_TONE_COLOR}"></div>Scale tone</div>`);
+  const legendHTML = `<div class="legend">${legendItems.join('')}</div>`;
+
+  const output = document.getElementById('output');
+  output.innerHTML = '';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'output-header';
+  hdr.innerHTML = `
+    <h2>${keyDisplay} ${modeName}</h2>
+    <div class="subtitle">${shapesMode ? 'Positional shapes · standard tuning (EADGBe)' : 'Full fretboard · standard tuning (EADGBe)'}</div>
+  `;
+  output.appendChild(hdr);
+
+  const nr = document.createElement('div');
+  nr.className = 'notes-row';
+  nr.style.cssText = 'max-width:980px;margin:0 auto 24px;';
+  nr.innerHTML = noteBadgesHTML;
+  output.appendChild(nr);
+
+  if (!shapesMode) {
+    const card = document.createElement('div');
+    card.className = 'diagram-card';
+    card.innerHTML = `<div class="fretboard-scroll">${renderFullFretboard(scaleNotes, noteInfo)}</div>`;
+    output.appendChild(card);
+  } else {
+    const shapes = computeModalBoxes(selectedKey, noteInfo);
+
+    const countLbl = document.createElement('div');
+    countLbl.className = 'shapes-count-label';
+    countLbl.textContent = `${shapes.length} positions · standard tuning`;
+    output.appendChild(countLbl);
+
+    const grid = document.createElement('div');
+    grid.className = 'shapes-grid';
+
+    shapes.forEach(shape => {
+      const card = document.createElement('div');
+      card.className = 'diagram-card shape-card';
+      card.innerHTML = `
+        <div class="shape-title">${shape.label}</div>
+        <div class="subtitle">${shape.sublabel}</div>
+        <div class="fretboard-scroll">${renderShape(shape)}</div>
+      `;
+      grid.appendChild(card);
+    });
+
+    output.appendChild(grid);
+  }
+
+  const legendPanel = document.createElement('div');
+  legendPanel.className = 'legend-panel';
+  legendPanel.innerHTML = `<div class="legend-title">Legend</div>${legendHTML}`;
+  output.appendChild(legendPanel);
+}
+
+// Default selections on startup
+const checkedMode = document.querySelector('#output-mode-group input[name="output-mode"]:checked');
+shapesMode = checkedMode ? checkedMode.value === 'shapes' : false;
+
+selectKey('C');
+</script>
+<footer>Designed by Jon Thornton. Implemented by Claude.</footer>
+</body>
+</html>

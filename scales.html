@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guitar Scales Explorer — Fretboard Diagrams for Diatonic, Pentatonic, Triad &amp; Blues</title>
+<meta name="description" content="Interactive guitar scale and fretboard diagram explorer. Explore diatonic, pentatonic, triad, and blues scales across any key with a circle of fifths key selector and CAGED-style fretboard positions.">
+<meta name="theme-color" content="#0f0e0c">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%230f0e0c%22/%3E%3Ctext%20x%3D%2250%22%20y%3D%2270%22%20font-family%3D%22Georgia%2Cserif%22%20font-size%3D%2258%22%20font-weight%3D%22bold%22%20fill%3D%22%23c9a84c%22%20text-anchor%3D%22middle%22%3ES%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+  body {
+    padding: 40px 24px 80px;
+  }
+
+  .controls {
+    max-width: 980px;
+    margin: 0 auto 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "key   stave"
+      "type  mode";
+    gap: 32px 40px;
+  }
+
+  .control-group.control-key   { grid-area: key; }
+  .control-group.control-stave { grid-area: stave; }
+  .control-group.control-type  { grid-area: type; }
+  .control-group.control-mode  { grid-area: mode; }
+
+  @media (max-width: 700px) {
+    .controls {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "key"
+        "stave"
+        "type"
+        "mode";
+    }
+  }
+
+  /* .control-group label and the .pill* control come from theme.css. */
+
+  #type-group {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: start;
+    gap: 8px;
+  }
+
+  /* .output, .shapes-grid, .diagram-card, .shape-title, .subtitle,
+     .notes-row, .note-badge, .fretboard-scroll/svg.fretboard,
+     .legend-panel/.legend-title/.legend/.legend-item/.legend-dot,
+     .output-header, .shapes-count-label, .circle-container,
+     .stave-container, #key-stave, .stave-label, #circle-of-fifths (base),
+     .circle-segment (base), and .circle-text come from theme.css. */
+
+  /* Circle of Fifths styles */
+  .circle-segment.major:hover {
+    fill: var(--amber-dim);
+  }
+
+  .circle-segment.minor:hover {
+    fill: #4a3a28;
+  }
+
+  .circle-segment.major.selected {
+    fill: var(--amber);
+  }
+
+  .circle-segment.minor.selected {
+    fill: #8b5e3c;
+  }
+
+  .circle-hint {
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-top: 8px;
+  }
+
+  .pill.hidden {
+    display: none;
+  }
+
+
+</style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&larr; Toolkit Home</a>
+
+<header>
+  <h1>Guitar Scales</h1>
+  <p>Scale &amp; Triad Diagram Explorer</p>
+</header>
+
+<div class="controls">
+  <div class="control-group control-key">
+    <label>Key</label>
+    <div class="circle-container">
+      <svg id="circle-of-fifths" width="450" height="450" viewBox="0 0 400 400"></svg>
+    </div>
+  </div>
+
+  <div class="control-group control-stave">
+    <label>Staff</label>
+    <div class="stave-container">
+      <svg id="key-stave" viewBox="0 0 560 173.33"></svg>
+      <div class="stave-label" id="stave-label"></div>
+    </div>
+  </div>
+
+  <div class="control-group control-type">
+    <label>Type</label>
+    <div class="pill-group" id="type-group">
+      <label class="pill" data-category="diatonic" data-major-value="major" data-minor-value="minor">
+        <input type="radio" name="scale-type" value="diatonic">
+        <i class="ti ti-stairs" aria-hidden="true"></i>
+        <span class="pill-text">Diatonic</span>
+      </label>
+      <label class="pill" data-category="pentatonic" data-major-value="major-pent" data-minor-value="minor-pent">
+        <input type="radio" name="scale-type" value="pentatonic">
+        <i class="ti ti-pentagon" aria-hidden="true"></i>
+        <span class="pill-text">Pentatonic</span>
+      </label>
+      <label class="pill" data-category="triad" data-major-value="major-triad" data-minor-value="minor-triad">
+        <input type="radio" name="scale-type" value="triad">
+        <i class="ti ti-triangle" aria-hidden="true"></i>
+        <span class="pill-text">Triad</span>
+      </label>
+      <label class="pill" data-category="blues" data-major-value="blues" data-minor-value="blues">
+        <input type="radio" name="scale-type" value="blues">
+        <i class="ti ti-music" aria-hidden="true"></i>
+        <span class="pill-text">Minor Blues</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="control-group control-mode">
+    <label>Output</label>
+    <div class="pill-group" id="mode-group">
+      <label class="pill" data-mode="full">
+        <input type="radio" name="output-mode" value="full" checked>
+        <i class="ti ti-square" aria-hidden="true"></i>
+        <span class="pill-text">Full</span>
+      </label>
+      <label class="pill" data-mode="shapes">
+        <input type="radio" name="output-mode" value="shapes">
+        <i class="ti ti-layout-grid" aria-hidden="true"></i>
+        <span class="pill-text">Shapes</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<div class="output" id="output">
+</div>
+
+<script src="lib/svg-utils.js"></script>
+<script src="lib/theory.js"></script>
+<script src="lib/circle-of-fifths.js"></script>
+<script src="lib/stave.js"></script>
+<script src="lib/fretboard.js"></script>
+<script>
+// ── Music Theory ──────────────────────────────────────────────────────────────
+// NOTES, LETTERS, LETTER_SEMITONE, LETTER_INDEX, noteIndex, buildDiatonicScale,
+// formatSpelledNote, ROOT_SPELLING_MAJOR/MINOR, and getKeySignature come from
+// theory.js.
+const NOTE_ALIASES = {'C#':'D♭','D#':'E♭','F#':'G♭','G#':'A♭','A#':'B♭'};
+
+const INTERVALS = {
+  'major':       [0,2,4,5,7,9,11],
+  'minor':       [0,2,3,5,7,8,10],
+  'major-pent':  [0,2,4,7,9],
+  'minor-pent':  [0,3,5,7,10],
+  'blues':       [0,3,5,6,7,10],
+  'major-triad': [0,4,7],
+  'minor-triad': [0,3,7],
+};
+
+const TYPE_NAMES = {
+  'major':'Major Scale','minor':'Minor Scale',
+  'major-pent':'Major Pentatonic','minor-pent':'Minor Pentatonic',
+  'blues':'Minor Blues Scale','major-triad':'Major Triad','minor-triad':'Minor Triad',
+};
+
+const DEGREE_NAMES = {
+  'major':       ['Root','2','3','4','5','6','7'],
+  'minor':       ['Root','2','b3','4','5','b6','b7'],
+  'major-pent':  ['Root','2','3','5','6'],
+  'minor-pent':  ['Root','b3','4','5','b7'],
+  'blues':       ['Root','b3','4','b5','5','b7'],
+  'major-triad': ['Root','3','5'],
+  'minor-triad': ['Root','b3','5'],
+};
+
+const DEGREE_COLORS = {
+  'Root': '#e8b62d', // saturated gold
+  '3':    '#3cb2e3', // saturated blue — major 3rd
+  'b3':   '#3cb2e3', // saturated blue — minor 3rd
+  '5':    '#a95a1e', // saturated brown/orange — 5th
+  'b5':   '#e33c3c', // saturated red — blue note
+};
+const DEFAULT_TONE_COLOR = '#6e677e'; // muted purple — other scale tones
+
+function degreeColor(index, degreeNames) {
+  return DEGREE_COLORS[degreeNames[index]] || DEFAULT_TONE_COLOR;
+}
+
+function getScaleNotes(root, type) {
+  const ri = noteIndex(root);
+  return INTERVALS[type].map(i => NOTES[(ri + i) % 12]);
+}
+
+// Each scale/chord type expressed as diatonic steps (0-6) into the 7-note
+// parent scale (major or natural minor) built on the tonic, so every note
+// gets its own letter name. Blues reuses the "5th" letter with an extra
+// flat for the blue note, alongside the natural 5th.
+const TYPE_SPELLING = {
+  'major':       { base: 'major', steps: [0,1,2,3,4,5,6] },
+  'minor':       { base: 'minor', steps: [0,1,2,3,4,5,6] },
+  'major-pent':  { base: 'major', steps: [0,1,2,4,5] },
+  'minor-pent':  { base: 'minor', steps: [0,2,3,4,6] },
+  'blues':       { base: 'minor', steps: [0,2,3,{step:4,extra:-1},4,6] },
+  'major-triad': { base: 'major', steps: [0,2,4] },
+  'minor-triad': { base: 'minor', steps: [0,2,4] },
+};
+
+// Avoids double-sharp/double-flat spellings (e.g. Abb) that can arise when
+// stacking an extra alteration (like the blues b5) onto an already-altered
+// diatonic degree. Re-spells using a neighboring letter when needed, since
+// a single accidental is always available for any pitch class.
+function simplifySpelling(letter, accidental) {
+  if (Math.abs(accidental) <= 1) return { letter, accidental };
+  const idx = LETTERS.indexOf(letter);
+  const targetPitch = ((LETTER_SEMITONE[letter] + accidental) % 12 + 12) % 12;
+  for (const step of [-1, 1, -2, 2]) {
+    const newLetter = LETTERS[(idx + step + 7) % 7];
+    const natural = LETTER_SEMITONE[newLetter];
+    let diff = (targetPitch - natural) % 12;
+    if (diff > 6) diff -= 12;
+    if (diff < -6) diff += 12;
+    if (Math.abs(diff) <= 1) return { letter: newLetter, accidental: diff };
+  }
+  return { letter, accidental };
+}
+
+function spellScaleNotes(root, keyType, type) {
+  const config = TYPE_SPELLING[type];
+  const table = keyType === 'minor' ? ROOT_SPELLING_MINOR : ROOT_SPELLING_MAJOR;
+  const [letter, accidental] = table[root];
+  const formula = config.base === 'minor' ? INTERVALS['minor'] : INTERVALS['major'];
+  const diatonic = buildDiatonicScale(letter, accidental, formula);
+  return config.steps.map(s => {
+    if (typeof s === 'object') {
+      const entry = diatonic[s.step];
+      const spelled = simplifySpelling(entry.letter, entry.accidental + s.extra);
+      return formatSpelledNote(spelled);
+    }
+    return formatSpelledNote(diatonic[s]);
+  });
+}
+
+// ── Key signature (for the stave) ───────────────────────────────────────────
+// getKeySignature() comes from theory.js.
+// SHARP_STAFF_POS/FLAT_STAFF_POS come from stave.js.
+
+// absoluteStaffStep() comes from theory.js.
+
+// Scale notes (in order) with an assigned octave, so they can be placed on
+// the stave. Starts the tonic at octave 4 and advances the octave whenever
+// the diatonic letter sequence wraps around (e.g. B -> C).
+function getScaleStaffNotes(root, keyType, type) {
+  const config = TYPE_SPELLING[type];
+  const table = keyType === 'minor' ? ROOT_SPELLING_MINOR : ROOT_SPELLING_MAJOR;
+  const [letter, accidental] = table[root];
+  const formula = config.base === 'minor' ? INTERVALS['minor'] : INTERVALS['major'];
+  const diatonic = buildDiatonicScale(letter, accidental, formula);
+
+  let octave = 4;
+  let prevLetterIdx = null;
+  return config.steps.map(s => {
+    const stepIdx = typeof s === 'object' ? s.step : s;
+    const extra = typeof s === 'object' ? s.extra : 0;
+    const entry = diatonic[stepIdx];
+    let noteLetter = entry.letter;
+    let noteAccidental = entry.accidental + extra;
+
+    // Provisional octave (before any respelling), using this degree's own
+    // letter for wrap detection against the previous note.
+    const provisionalIdx = LETTER_INDEX[noteLetter];
+    let noteOctave = octave;
+    if (prevLetterIdx !== null && provisionalIdx < prevLetterIdx) noteOctave = octave + 1;
+
+    if (Math.abs(noteAccidental) > 1) {
+      const absolutePitch = noteOctave * 12 + LETTER_SEMITONE[noteLetter] + noteAccidental;
+      const simplified = simplifySpelling(noteLetter, noteAccidental);
+      noteOctave = (absolutePitch - LETTER_SEMITONE[simplified.letter] - simplified.accidental) / 12;
+      noteLetter = simplified.letter;
+      noteAccidental = simplified.accidental;
+    }
+
+    octave = noteOctave;
+    prevLetterIdx = LETTER_INDEX[noteLetter];
+
+    return {
+      letter: noteLetter,
+      accidental: noteAccidental,
+      octave,
+      name: formatSpelledNote({ letter: noteLetter, accidental: noteAccidental }),
+      step: absoluteStaffStep(noteLetter, octave),
+    };
+  });
+}
+
+// ── Stave rendering ──────────────────────────────────────────────────────────
+// STAVE_SCALE/STAVE_LEFT_X/etc., SHARP_STAFF_POS/FLAT_STAFF_POS, stepY,
+// drawLedgerLines, and renderMusicStave come from stave.js.
+
+// Resolve which scale/chord type applies for a given key quality, based on
+// the currently selected Type category (independent of which key is
+// currently selected/hovered).
+function resolveTypeFor(keyType) {
+  if (!selectedCategory) return null;
+  // Minor Blues has no major-key variant. Rather than showing no notes at all
+  // when hovering a major key, fall back to showing that key's diatonic notes.
+  if (selectedCategory === 'blues' && keyType === 'major') return 'major';
+  const pill = document.querySelector(`#type-group .pill[data-category="${selectedCategory}"]`);
+  if (!pill) return null;
+  return keyType === 'minor' ? pill.dataset.minorValue : pill.dataset.majorValue;
+}
+
+function renderStave(root, keyType) {
+  const sig = getKeySignature(root, keyType);
+  const type = resolveTypeFor(keyType);
+  const degreeNames = type ? DEGREE_NAMES[type] : undefined;
+  const notes = type ? getScaleStaffNotes(root, keyType, type) : [];
+
+  renderMusicStave({
+    sig,
+    notes,
+    degreeNames,
+    getLabelLines: (outOfKeyNote) => {
+      const isMinorBlues = type === 'blues';
+      const TYPE_LABEL_FOR_STAVE = {
+        major: 'Diatonic', minor: 'Diatonic',
+        'major-pent': 'Pentatonic', 'minor-pent': 'Pentatonic',
+        'major-triad': 'Triad', 'minor-triad': 'Triad',
+      };
+      const baseQuality = keyType === 'minor' ? 'Minor' : 'Major';
+      const typeLabel = type ? TYPE_LABEL_FOR_STAVE[type] : null;
+      const qualityName = isMinorBlues ? 'Minor Blues'
+        : typeLabel ? `${baseQuality} ${typeLabel}`
+        : baseQuality;
+      const symbol = sig.type === 'sharp' ? '\u266F' : '\u266D';
+      const count = sig.letters.length;
+      const sigLine = count === 0
+        ? 'No sharps or flats'
+        : `${count} ${sig.type}${count > 1 ? 's' : ''}: ${sig.letters.map(l => l + symbol).join(' ')}`;
+
+      const lines = [`${sig.tonicName} ${qualityName}`, sigLine];
+      if (isMinorBlues && outOfKeyNote) {
+        lines.push(`Blue note: ${outOfKeyNote.name}`);
+      }
+      return lines;
+    },
+  });
+}
+
+// ── Circle of Fifths ──────────────────────────────────────────────────────────
+// MAJOR_KEYS, MINOR_KEYS, and renderCircleOfFifths come from circle-of-fifths.js.
+// getPosition, createArcPath, and createSVGElement come from svg-utils.js.
+
+function renderCircle() {
+  renderCircleOfFifths({
+    selectedKey,
+    selectedKeyType,
+    fontFamily: 'DM Sans, sans-serif',
+    onSelect: (name, type) => selectKey(name, type),
+    onHover: (name, type) => renderStave(name, type),
+    onHoverEnd: () => renderStave(selectedKey, selectedKeyType),
+  });
+}
+
+// ── Fretboard ─────────────────────────────────────────────────────────────────
+// OPEN_NOTES/OPEN_ABS/NUM_STRINGS and getFretNote come from fretboard.js.
+
+// ── Positional shape computation ──────────────────────────────────────────────
+// Builds a lookup from each chromatic note-name in the scale to its display
+// info (spelled name, degree label, color), so every dot on every diagram is
+// labeled and colored consistently.
+function buildNoteInfo(scaleNotes, rootNote, degreeNames, spelledNotes) {
+  const info = {};
+  scaleNotes.forEach((note, i) => {
+    info[note] = {
+      note: spelledNotes[i],
+      isRoot: note === rootNote,
+      color: degreeColor(i, degreeNames),
+    };
+  });
+  return info;
+}
+
+// makeDot and A_MINOR_PENT_BOXES/A_MINOR_PENT_ROOT_FRET/PENT_BOXES_REL come
+// from fretboard.js.
+
+// Returns the five CAGED pentatonic boxes for the given minor-pentatonic root,
+// each placed at its lowest position that avoids open strings, then ordered
+// ascending up the neck. The box that would fall in open position is wrapped up
+// an octave, so the set always starts as low as possible without open strings.
+function pentatonicBoxesForMinorRoot(minorRootPc) {
+  const base = ((minorRootPc - noteIndex('E')) % 12 + 12) % 12; // low-E fret of root
+  const natural = PENT_BOXES_REL.map(box => {
+    let frets = box.map(stringFrets => stringFrets.map(rel => rel + base));
+    if (Math.min(...frets.flat()) < 1) {
+      frets = box.map(stringFrets => stringFrets.map(rel => rel + base + 12));
+    }
+    return frets;
+  });
+  // A box that starts past fret 12 is a candidate to wrap an octave down toward
+  // the nut (the identical shape recurs every 12 frets). Only wrap when the
+  // lower placement avoids open strings and doesn't substantially overlap a
+  // box already chosen, so positions stay distinct across the neck.
+  const chosen = [];
+  for (const frets of natural) {
+    let final = frets;
+    if (Math.min(...frets.flat()) > 12) {
+      const wrapped = frets.map(stringFrets => stringFrets.map(f => f - 12));
+      const wrappedMin = Math.min(...wrapped.flat());
+      const overlapsChosen = chosen.some(other => fretRangeOverlap(wrapped, other) > 1);
+      if (wrappedMin >= 1 && !overlapsChosen) final = wrapped;
+    }
+    chosen.push(final);
+  }
+  chosen.sort((a, b) => Math.min(...a.flat()) - Math.min(...b.flat()));
+  return chosen.map(frets => ({ anchor: Math.min(...frets[0]), frets }));
+}
+
+// fretRangeOverlap comes from fretboard.js.
+
+// The minor pentatonic of a major key's root shares the same five boxes as the
+// relative minor (root minus 3 semitones). This keeps major and minor pentatonic
+// (and their derived triads/blues) on the identical CAGED shapes.
+function pentatonicBoxes(rootPc, isMajor) {
+  const minorRootPc = isMajor ? ((rootPc - 3) % 12 + 12) % 12 : rootPc;
+  return pentatonicBoxesForMinorRoot(minorRootPc);
+}
+
+// Pentatonic (major or minor): the five boxes, all notes shown.
+function computePentatonicShapes(rootPc, isMajor, noteInfo) {
+  return pentatonicBoxes(rootPc, isMajor).map((box, idx) =>
+    finalizeShape(box.frets, noteInfo, idx));
+}
+
+// Triads: the same five pentatonic boxes, filtered to only chord tones.
+function computeTriadShapes(rootPc, isMajor, triadNotes, noteInfo) {
+  return pentatonicBoxes(rootPc, isMajor).map((box, idx) => {
+    const frets = box.frets.map((stringFrets, s) =>
+      stringFrets.filter(f => triadNotes.includes(getFretNote(s, f))));
+    return finalizeShape(frets, noteInfo, idx);
+  });
+}
+
+// Blues: the same five CAGED box positions used by pentatonic/triad/diatonic,
+// with the blue note (b5) added. Blue notes frequently land one fret outside the
+// core pentatonic box, so we scan one fret beyond each side to capture them; the
+// box's own anchor/position is preserved (so blues lines up with the other
+// types) and the diagram is drawn a fret wider on each side (see renderShape) so
+// no blue note is ever truncated. When the same blue-note pitch is reachable on
+// two adjacent strings (a unison), only one is kept — the one that sits directly
+// next to a pentatonic box note, where a player would actually finger it.
+
+function computeBluesShapes(rootPc, blueNote, noteInfo) {
+  return pentatonicBoxes(rootPc, false).map((box, idx) => {
+    const allFrets = box.frets.flat();
+    const lo = Math.min(...allFrets), hi = Math.max(...allFrets);
+
+    // Gather candidate blue notes (string, fret, absolute pitch, and whether it
+    // is adjacent to a pentatonic note already on that string).
+    const blueCandidates = [];
+    for (let s = 0; s < NUM_STRINGS; s++) {
+      for (let f = Math.max(0, lo - 1); f <= hi + 1; f++) {
+        if (getFretNote(s, f) === blueNote && !box.frets[s].includes(f)) {
+          const adjacent = box.frets[s].some(bf => Math.abs(bf - f) === 1);
+          blueCandidates.push({ s, f, pitch: OPEN_ABS[s] + f, adjacent });
+        }
+      }
+    }
+    // Keep one blue note per pitch: prefer the instance adjacent to a box note.
+    const chosenByPitch = new Map();
+    for (const c of blueCandidates) {
+      const existing = chosenByPitch.get(c.pitch);
+      if (!existing || (c.adjacent && !existing.adjacent)) chosenByPitch.set(c.pitch, c);
+    }
+    const blueByString = {};
+    for (const c of chosenByPitch.values()) {
+      (blueByString[c.s] = blueByString[c.s] || []).push(c.f);
+    }
+
+    // Don't let a blue note become the very first (lowest-fret) note in the
+    // position — that pulls the displayed range a fret to the left of the
+    // usual pentatonic anchor, making the whole shape look like it shifted
+    // compared to the other types. If the overall lowest fret in the box
+    // would be a blue note, drop just that one note.
+    let overallMin = lo, overallMinString = null;
+    for (const [sKey, fretsArr] of Object.entries(blueByString)) {
+      for (const f of fretsArr) {
+        if (f < overallMin) { overallMin = f; overallMinString = sKey; }
+      }
+    }
+    if (overallMinString !== null) {
+      const arr = blueByString[overallMinString];
+      arr.splice(arr.indexOf(overallMin), 1);
+    }
+
+    const frets = box.frets.map((stringFrets, s) => {
+      const combined = [...stringFrets, ...(blueByString[s] || [])];
+      return combined.sort((a, b) => a - b);
+    });
+    return finalizeShape(frets, noteInfo, idx, box.anchor);
+  });
+}
+
+// Diatonic (7-note) scales use the same five CAGED box positions as their parent
+// pentatonic, with the two diatonic passing tones filled into each box. This is
+// the standard "5 Pattern" major-scale system: five positions (not seven), each
+// spanning ~4 frets with three notes on most strings and two on one or two —
+// tighter and fewer than the 3-notes-per-string system.
+function computeDiatonicBoxes(rootPc, isMajor, scaleNotes, noteInfo) {
+  const boxes = pentatonicBoxes(rootPc, isMajor);
+  return boxes.map((box, idx) => {
+    const all = box.frets.flat();
+    const lo = Math.min(...all), hi = Math.max(...all);
+    const frets = [];
+    for (let s = 0; s < NUM_STRINGS; s++) {
+      const stringFrets = [];
+      for (let f = lo; f <= hi; f++) {
+        if (scaleNotes.includes(getFretNote(s, f))) stringFrets.push(f);
+      }
+      frets.push(stringFrets);
+    }
+    return finalizeShape(frets, noteInfo, idx);
+  });
+}
+
+// finalizeShape comes from fretboard.js. anchorOverride pins the position's
+// anchor/label (used by blues, whose blue notes can extend a fret past the
+// core box but shouldn't shift its position).
+
+// Dispatcher: chooses the correct positional convention for the given type.
+function computeShapes(scaleType, rootNote, degreeNames, spelledNotes) {
+  const scaleNotes = getScaleNotes(rootNote, scaleType);
+  const noteInfo = buildNoteInfo(scaleNotes, rootNote, degreeNames, spelledNotes);
+  const rootPc = noteIndex(rootNote);
+
+  switch (scaleType) {
+    case 'major':
+      return computeDiatonicBoxes(rootPc, true, scaleNotes, noteInfo);
+    case 'minor':
+      return computeDiatonicBoxes(rootPc, false, scaleNotes, noteInfo);
+
+    case 'major-pent':
+      return computePentatonicShapes(rootPc, true, noteInfo);
+    case 'minor-pent':
+      return computePentatonicShapes(rootPc, false, noteInfo);
+
+    case 'major-triad':
+      return computeTriadShapes(rootPc, true, scaleNotes, noteInfo);
+    case 'minor-triad':
+      return computeTriadShapes(rootPc, false, scaleNotes, noteInfo);
+
+    case 'blues': {
+      // Minor blues here: minor pentatonic boxes + b5 blue note.
+      const blueNote = NOTES[(rootPc + 6) % 12];
+      return computeBluesShapes(rootPc, blueNote, noteInfo);
+    }
+
+    default:
+      return computePentatonicShapes(rootPc, false, noteInfo);
+  }
+}
+
+// buildFretboardSVG comes from fretboard.js.
+
+function renderFullFretboard(scaleNotes, rootNote, degreeNames, spelledNotes) {
+  const dots = [];
+  for (let str = 0; str < NUM_STRINGS; str++) {
+    for (let f = 0; f <= 15; f++) {
+      const note = getFretNote(str, f);
+      if (scaleNotes.includes(note)) {
+        const degIdx = scaleNotes.indexOf(note);
+        dots.push({ string: str, fret: f, note: spelledNotes[degIdx], isRoot: note === rootNote, color: degreeColor(degIdx, degreeNames) });
+      }
+    }
+  }
+  return buildFretboardSVG(dots, { startFret: 0, endFret: 15, compact: false });
+}
+
+// renderShape comes from fretboard.js.
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+let selectedKey = null;
+let selectedKeyType = null; // 'major' or 'minor' from circle
+let selectedCategory = null; // 'diatonic' | 'pentatonic' | 'blues' | 'triad'
+let selectedType = null; // resolved type string used by scale/chord logic
+let shapesMode = false;
+
+function selectKey(keyName, keyType) {
+  selectedKey = keyName;
+  selectedKeyType = keyType;
+  updateBluesAvailability(keyType);
+  renderCircle();
+  renderStave(keyName, keyType);
+  resolveSelectedType();
+}
+
+// Blues (as implemented) is a minor-pentatonic-derived scale, so it doesn't
+// apply to major keys. Disable the pill for major keys, and if Blues was the
+// active selection when a major key is chosen, fall back to Diatonic.
+function updateBluesAvailability(keyType) {
+  const bluesPill = document.querySelector('#type-group .pill[data-category="blues"]');
+  if (!bluesPill) return;
+  const bluesInput = bluesPill.querySelector('input');
+  const disable = keyType === 'major';
+  bluesInput.disabled = disable;
+  if (disable && selectedCategory === 'blues') {
+    const diatonicPill = document.querySelector('#type-group .pill[data-category="diatonic"]');
+    diatonicPill.querySelector('input').checked = true;
+    selectedCategory = 'diatonic';
+  }
+}
+
+function resolveSelectedType() {
+  selectedType = selectedKeyType ? resolveTypeFor(selectedKeyType) : null;
+  maybeGenerate();
+}
+
+// Type pills
+document.querySelectorAll('#type-group input[type="radio"]').forEach(input => {
+  input.addEventListener('change', () => {
+    selectedCategory = input.value;
+    resolveSelectedType();
+    renderStave(selectedKey, selectedKeyType);
+  });
+});
+
+// Mode buttons
+document.querySelectorAll('#mode-group input[type="radio"]').forEach(input => {
+  input.addEventListener('change', () => {
+    shapesMode = input.value === 'shapes';
+    maybeGenerate();
+  });
+});
+
+// Renders the output whenever a key, type, and mode are all selected — no
+// manual "Generate" step required.
+function maybeGenerate() {
+  if (selectedKey && selectedType) generate();
+}
+
+function generate() {
+  const scaleNotes = getScaleNotes(selectedKey, selectedType);
+  const typeName = TYPE_NAMES[selectedType];
+  // Wrap accidental symbols with their own tight letter-spacing so they sit
+  // snug against the note letter, instead of inheriting the heading's wider
+  // letter-spacing (which reads as an odd gap between letter and symbol).
+  const tightAccidental = s => s.replace(/([A-G])([♯♭])/g, '$1<span style="letter-spacing:0">$2</span>');
+  const sharpKeyDisplay = tightAccidental(selectedKey.replace('#', '♯'));
+  const keyDisplay = NOTE_ALIASES[selectedKey]
+    ? `${sharpKeyDisplay}/${tightAccidental(NOTE_ALIASES[selectedKey])}`
+    : sharpKeyDisplay;
+  const degreeNames = DEGREE_NAMES[selectedType];
+  const spelledNotes = spellScaleNotes(selectedKey, selectedKeyType, selectedType);
+
+  const noteBadgesHTML = spelledNotes.map((n, i) => {
+    const color = degreeColor(i, degreeNames);
+    const textColor = i === 0 ? '#0f0e0c' : '#e8e0d0';
+    return `<span class="${i===0?'note-badge root':'note-badge'}" title="${degreeNames[i]}" style="background:${color};color:${textColor};">${n}</span>`;
+  }).join('');
+
+  const legendItems = [];
+  const usedDegrees = new Set(degreeNames);
+  legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['Root']}"></div>Root</div>`);
+  if (usedDegrees.has('3') || usedDegrees.has('b3')) {
+    legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['3']}"></div>3rd</div>`);
+  }
+  if (usedDegrees.has('5')) {
+    legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['5']}"></div>5th</div>`);
+  }
+  if (usedDegrees.has('b5')) {
+    legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['b5']}"></div>Blue note</div>`);
+  }
+  legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEFAULT_TONE_COLOR}"></div>Scale tone</div>`);
+  const legendHTML = `<div class="legend">${legendItems.join('')}</div>`;
+
+  const output = document.getElementById('output');
+  output.innerHTML = '';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'output-header';
+  hdr.innerHTML = `
+    <h2>${keyDisplay} ${typeName}</h2>
+    <div class="subtitle">${shapesMode ? 'Positional shapes · standard tuning (EADGBe)' : 'Full fretboard · standard tuning (EADGBe)'}</div>
+  `;
+  output.appendChild(hdr);
+
+  const nr = document.createElement('div');
+  nr.className = 'notes-row';
+  nr.style.cssText = 'max-width:980px;margin:0 auto 24px;';
+  nr.innerHTML = noteBadgesHTML;
+  output.appendChild(nr);
+
+  if (!shapesMode) {
+    const card = document.createElement('div');
+    card.className = 'diagram-card';
+    card.innerHTML = `<div class="fretboard-scroll">${renderFullFretboard(scaleNotes, selectedKey, degreeNames, spelledNotes)}</div>`;
+    output.appendChild(card);
+  } else {
+    const shapes = computeShapes(selectedType, selectedKey, degreeNames, spelledNotes);
+
+    const countLbl = document.createElement('div');
+    countLbl.className = 'shapes-count-label';
+    countLbl.textContent = `${shapes.length} positions · standard tuning`;
+    output.appendChild(countLbl);
+
+    const grid = document.createElement('div');
+    grid.className = 'shapes-grid';
+
+    shapes.forEach(shape => {
+      const card = document.createElement('div');
+      card.className = 'diagram-card shape-card';
+      const fretLbl = shape.sublabel;
+      card.innerHTML = `
+        <div class="shape-title">${shape.label}</div>
+        <div class="subtitle">${fretLbl}</div>
+        <div class="fretboard-scroll">${renderShape(shape)}</div>
+      `;
+      grid.appendChild(card);
+    });
+
+    output.appendChild(grid);
+  }
+
+  const legendPanel = document.createElement('div');
+  legendPanel.className = 'legend-panel';
+  legendPanel.innerHTML = `<div class="legend-title">Legend</div>${legendHTML}`;
+  output.appendChild(legendPanel);
+}
+
+// Default selections on startup
+document.querySelector('#type-group input[value="diatonic"]').checked = true;
+selectedCategory = 'diatonic';
+
+// Some mobile browsers (notably iOS WebKit, which underlies Chrome on iOS)
+// restore radio "checked" state across page loads independent of the HTML's
+// static checked attribute. Sync shapesMode from whatever is actually checked
+// in the DOM rather than trusting the hardcoded default, so the very first
+// render matches what's visually selected.
+const checkedMode = document.querySelector('#mode-group input[name="output-mode"]:checked');
+shapesMode = checkedMode ? checkedMode.value === 'shapes' : false;
+
+selectKey('C', 'major');
+</script>
+<footer>Designed by Jon Thornton. Implemented by Claude.</footer>
+</body>
+</html>
