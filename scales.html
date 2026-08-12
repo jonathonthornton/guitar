@@ -392,49 +392,15 @@ function buildNoteInfo(scaleNotes, rootNote, degreeNames, spelledNotes) {
   return info;
 }
 
-// makeDot and A_MINOR_PENT_BOXES/A_MINOR_PENT_ROOT_FRET/PENT_BOXES_REL come
-// from fretboard.js.
-
-// Returns the five CAGED pentatonic boxes for the given minor-pentatonic root,
-// each placed at its lowest position that avoids open strings, then ordered
-// ascending up the neck. The box that would fall in open position is wrapped up
-// an octave, so the set always starts as low as possible without open strings.
-function pentatonicBoxesForMinorRoot(minorRootPc) {
-  const base = ((minorRootPc - noteIndex('E')) % 12 + 12) % 12; // low-E fret of root
-  const natural = PENT_BOXES_REL.map(box => {
-    let frets = box.map(stringFrets => stringFrets.map(rel => rel + base));
-    if (Math.min(...frets.flat()) < 1) {
-      frets = box.map(stringFrets => stringFrets.map(rel => rel + base + 12));
-    }
-    return frets;
-  });
-  // A box that starts past fret 12 is a candidate to wrap an octave down toward
-  // the nut (the identical shape recurs every 12 frets). Only wrap when the
-  // lower placement avoids open strings and doesn't substantially overlap a
-  // box already chosen, so positions stay distinct across the neck.
-  const chosen = [];
-  for (const frets of natural) {
-    let final = frets;
-    if (Math.min(...frets.flat()) > 12) {
-      const wrapped = frets.map(stringFrets => stringFrets.map(f => f - 12));
-      const wrappedMin = Math.min(...wrapped.flat());
-      const overlapsChosen = chosen.some(other => fretRangeOverlap(wrapped, other) > 1);
-      if (wrappedMin >= 1 && !overlapsChosen) final = wrapped;
-    }
-    chosen.push(final);
-  }
-  chosen.sort((a, b) => Math.min(...a.flat()) - Math.min(...b.flat()));
-  return chosen.map(frets => ({ anchor: Math.min(...frets[0]), frets }));
-}
-
-// fretRangeOverlap comes from fretboard.js.
+// makeDot, A_MINOR_PENT_BOXES/A_MINOR_PENT_ROOT_FRET/PENT_BOXES_REL,
+// fretRangeOverlap, and pentatonicBoxesForRoot come from fretboard.js.
 
 // The minor pentatonic of a major key's root shares the same five boxes as the
 // relative minor (root minus 3 semitones). This keeps major and minor pentatonic
 // (and their derived triads/blues) on the identical CAGED shapes.
 function pentatonicBoxes(rootPc, isMajor) {
   const minorRootPc = isMajor ? ((rootPc - 3) % 12 + 12) % 12 : rootPc;
-  return pentatonicBoxesForMinorRoot(minorRootPc);
+  return pentatonicBoxesForRoot(minorRootPc);
 }
 
 // Pentatonic (major or minor): the five boxes, all notes shown.
@@ -522,21 +488,14 @@ function computeDiatonicBoxes(rootPc, isMajor, scaleNotes, noteInfo) {
   return boxes.map((box, idx) => {
     const all = box.frets.flat();
     const lo = Math.min(...all), hi = Math.max(...all);
-    const frets = [];
-    for (let s = 0; s < NUM_STRINGS; s++) {
-      const stringFrets = [];
-      for (let f = lo; f <= hi; f++) {
-        if (scaleNotes.includes(getFretNote(s, f))) stringFrets.push(f);
-      }
-      frets.push(stringFrets);
-    }
+    const frets = fillWindow(scaleNotes, lo, hi);
     return finalizeShape(frets, noteInfo, idx);
   });
 }
 
-// finalizeShape comes from fretboard.js. anchorOverride pins the position's
-// anchor/label (used by blues, whose blue notes can extend a fret past the
-// core box but shouldn't shift its position).
+// finalizeShape and fillWindow come from fretboard.js. finalizeShape's
+// anchorOverride pins the position's anchor/label (used by blues, whose blue
+// notes can extend a fret past the core box but shouldn't shift its position).
 
 // Dispatcher: chooses the correct positional convention for the given type.
 function computeShapes(scaleType, rootNote, degreeNames, spelledNotes) {
@@ -571,23 +530,10 @@ function computeShapes(scaleType, rootNote, degreeNames, spelledNotes) {
   }
 }
 
-// buildFretboardSVG comes from fretboard.js.
-
-function renderFullFretboard(scaleNotes, rootNote, degreeNames, spelledNotes) {
-  const dots = [];
-  for (let str = 0; str < NUM_STRINGS; str++) {
-    for (let f = 0; f <= 15; f++) {
-      const note = getFretNote(str, f);
-      if (scaleNotes.includes(note)) {
-        const degIdx = scaleNotes.indexOf(note);
-        dots.push({ string: str, fret: f, note: spelledNotes[degIdx], isRoot: note === rootNote, color: degreeColor(degIdx, degreeNames) });
-      }
-    }
-  }
-  return buildFretboardSVG(dots, { startFret: 0, endFret: 15, compact: false });
-}
-
-// renderShape comes from fretboard.js.
+// buildFretboardSVG, renderFullFretboard, and renderShape come from
+// fretboard.js. renderFullFretboard takes the same noteInfo lookup as
+// buildNoteInfo() above produces (it's built once in generate() and reused
+// for both the full-fretboard and shapes branches).
 
 // ── UI ────────────────────────────────────────────────────────────────────────
 let selectedKey = null;
@@ -662,80 +608,38 @@ function generate() {
     : sharpKeyDisplay;
   const degreeNames = DEGREE_NAMES[selectedType];
   const spelledNotes = spellScaleNotes(selectedKey, selectedKeyType, selectedType);
+  const noteInfo = buildNoteInfo(scaleNotes, selectedKey, degreeNames, spelledNotes);
 
-  const noteBadgesHTML = spelledNotes.map((n, i) => {
-    const color = degreeColor(i, degreeNames);
-    const textColor = i === 0 ? '#0f0e0c' : '#e8e0d0';
-    return `<span class="${i===0?'note-badge root':'note-badge'}" title="${degreeNames[i]}" style="background:${color};color:${textColor};">${n}</span>`;
-  }).join('');
+  // buildNoteBadgesHTML and legendItemHTML come from fretboard.js.
+  const noteBadgesHTML = buildNoteBadgesHTML(
+    spelledNotes.map((n, i) => ({ name: n, color: degreeColor(i, degreeNames), title: degreeNames[i] }))
+  );
 
   const legendItems = [];
   const usedDegrees = new Set(degreeNames);
-  legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['Root']}"></div>Root</div>`);
+  legendItems.push(legendItemHTML(DEGREE_COLORS['Root'], 'Root'));
   if (usedDegrees.has('3') || usedDegrees.has('b3')) {
-    legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['3']}"></div>3rd</div>`);
+    legendItems.push(legendItemHTML(DEGREE_COLORS['3'], '3rd'));
   }
   if (usedDegrees.has('5')) {
-    legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['5']}"></div>5th</div>`);
+    legendItems.push(legendItemHTML(DEGREE_COLORS['5'], '5th'));
   }
   if (usedDegrees.has('b5')) {
-    legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['b5']}"></div>Blue note</div>`);
+    legendItems.push(legendItemHTML(DEGREE_COLORS['b5'], 'Blue note'));
   }
-  legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEFAULT_TONE_COLOR}"></div>Scale tone</div>`);
+  legendItems.push(legendItemHTML(DEFAULT_TONE_COLOR, 'Scale tone'));
   const legendHTML = `<div class="legend">${legendItems.join('')}</div>`;
 
-  const output = document.getElementById('output');
-  output.innerHTML = '';
-
-  const hdr = document.createElement('div');
-  hdr.className = 'output-header';
-  hdr.innerHTML = `
-    <h2>${keyDisplay} ${typeName}</h2>
-    <div class="subtitle">${shapesMode ? 'Positional shapes · standard tuning (EADGBe)' : 'Full fretboard · standard tuning (EADGBe)'}</div>
-  `;
-  output.appendChild(hdr);
-
-  const nr = document.createElement('div');
-  nr.className = 'notes-row';
-  nr.style.cssText = 'max-width:980px;margin:0 auto 24px;';
-  nr.innerHTML = noteBadgesHTML;
-  output.appendChild(nr);
-
-  if (!shapesMode) {
-    const card = document.createElement('div');
-    card.className = 'diagram-card';
-    card.innerHTML = `<div class="fretboard-scroll">${renderFullFretboard(scaleNotes, selectedKey, degreeNames, spelledNotes)}</div>`;
-    output.appendChild(card);
-  } else {
-    const shapes = computeShapes(selectedType, selectedKey, degreeNames, spelledNotes);
-
-    const countLbl = document.createElement('div');
-    countLbl.className = 'shapes-count-label';
-    countLbl.textContent = `${shapes.length} positions · standard tuning`;
-    output.appendChild(countLbl);
-
-    const grid = document.createElement('div');
-    grid.className = 'shapes-grid';
-
-    shapes.forEach(shape => {
-      const card = document.createElement('div');
-      card.className = 'diagram-card shape-card';
-      const fretLbl = shape.sublabel;
-      card.innerHTML = `
-        <div class="shape-title">${shape.label}</div>
-        <div class="subtitle">${fretLbl}</div>
-        <div class="fretboard-scroll">${renderShape(shape)}</div>
-      `;
-      grid.appendChild(card);
-    });
-
-    output.appendChild(grid);
-  }
-
-  const legendPanel = document.createElement('div');
-  legendPanel.className = 'legend-panel';
-  legendPanel.innerHTML = `<div class="legend-title">Legend</div>${legendHTML}`;
-  output.appendChild(legendPanel);
+  // renderScaleOutput comes from fretboard.js.
+  renderScaleOutput({
+    title: `${keyDisplay} ${typeName}`,
+    noteBadgesHTML,
+    legendHTML,
+    shapesMode,
+    scaleNotes,
+    noteInfo,
+    computeShapes: () => computeShapes(selectedType, selectedKey, degreeNames, spelledNotes),
+  });
 }
 
 // Default selections on startup

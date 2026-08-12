@@ -478,30 +478,9 @@ function buildNoteInfo(parentKey, modeIndex) {
   return info;
 }
 
-// makeDot, A_MINOR_PENT_BOXES/A_MINOR_PENT_ROOT_FRET/PENT_BOXES_REL, and
-// fretRangeOverlap come from fretboard.js.
-
-function pentatonicBoxesForRoot(rootPc) {
-  const base = ((rootPc - noteIndex('E')) % 12 + 12) % 12;
-  const natural = PENT_BOXES_REL.map(box => {
-    let frets = box.map(sf => sf.map(rel => rel + base));
-    if (Math.min(...frets.flat()) < 1) frets = box.map(sf => sf.map(rel => rel + base + 12));
-    return frets;
-  });
-  const chosen = [];
-  for (const frets of natural) {
-    let final = frets;
-    if (Math.min(...frets.flat()) > 12) {
-      const wrapped = frets.map(sf => sf.map(f => f - 12));
-      const wrappedMin = Math.min(...wrapped.flat());
-      const overlapsChosen = chosen.some(other => fretRangeOverlap(wrapped, other) > 1);
-      if (wrappedMin >= 1 && !overlapsChosen) final = wrapped;
-    }
-    chosen.push(final);
-  }
-  chosen.sort((a, b) => Math.min(...a.flat()) - Math.min(...b.flat()));
-  return chosen.map(frets => ({ anchor: Math.min(...frets[0]), frets }));
-}
+// makeDot, A_MINOR_PENT_BOXES/A_MINOR_PENT_ROOT_FRET/PENT_BOXES_REL,
+// fretRangeOverlap, pentatonicBoxesForRoot, and fillWindow come from
+// fretboard.js.
 
 // Modes always use 7-note diatonic fill of the pentatonic-shaped box windows —
 // the same "5 Pattern" system as the main page's Diatonic type. The window
@@ -521,18 +500,6 @@ function pentatonicBoxesForRoot(rootPc) {
 // which sat just past the window's edge). fillWindow widens the window a
 // fret at a time, preferring whichever side most improves coverage, until
 // every string has at least 2 notes.
-function fillWindow(scaleNotes, lo, hi) {
-  const frets = [];
-  for (let s = 0; s < NUM_STRINGS; s++) {
-    const stringFrets = [];
-    for (let f = lo; f <= hi; f++) {
-      if (scaleNotes.includes(getFretNote(s, f))) stringFrets.push(f);
-    }
-    frets.push(stringFrets);
-  }
-  return frets;
-}
-
 function underfilledCount(frets) {
   return frets.filter(sf => sf.length < 3).length;
 }
@@ -607,21 +574,8 @@ function computeModalBoxes(parentKey, noteInfo) {
   return shapes.map((frets, idx) => finalizeShape(frets, noteInfo, idx));
 }
 
-// finalizeShape comes from fretboard.js.
-
-// buildFretboardSVG comes from fretboard.js.
-function renderFullFretboard(scaleNotes, noteInfo) {
-  const dots = [];
-  for (let str = 0; str < NUM_STRINGS; str++) {
-    for (let f = 0; f <= 15; f++) {
-      const note = getFretNote(str, f);
-      if (scaleNotes.includes(note)) {
-        dots.push(makeDot(str, f, noteInfo));
-      }
-    }
-  }
-  return buildFretboardSVG(dots, { startFret: 0, endFret: 15, compact: false });
-}
+// finalizeShape, buildFretboardSVG, and renderFullFretboard come from
+// fretboard.js.
 
 // renderShape comes from fretboard.js.
 
@@ -668,75 +622,36 @@ function generate() {
   const symbolize = s => s.replace(/#/g, '♯').replace(/b/g, '♭');
   const keyDisplay = tightAccidental(symbolize(noteInfo[rootNote].note));
 
-  const noteBadgesHTML = modeOrderChromatic.map((chromaticNote, i) => {
-    const info = noteInfo[chromaticNote];
-    const textColor = i === 0 ? '#0f0e0c' : '#e8e0d0';
-    return `<span class="${i===0?'note-badge root':'note-badge'}" title="${degreeNames[i]}" style="background:${info.color};color:${textColor};">${info.note}</span>`;
-  }).join('');
+  // buildNoteBadgesHTML and legendItemHTML come from fretboard.js.
+  const noteBadgesHTML = buildNoteBadgesHTML(
+    modeOrderChromatic.map((chromaticNote, i) => {
+      const info = noteInfo[chromaticNote];
+      return { name: info.note, color: info.color, title: degreeNames[i] };
+    })
+  );
 
   const legendItems = [];
   const usedDegrees = new Set(degreeNames);
-  legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['Root']}"></div>Root</div>`);
+  legendItems.push(legendItemHTML(DEGREE_COLORS['Root'], 'Root'));
   if (usedDegrees.has('3') || usedDegrees.has('b3')) {
-    legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['3']}"></div>3rd</div>`);
+    legendItems.push(legendItemHTML(DEGREE_COLORS['3'], '3rd'));
   }
   if (usedDegrees.has('5') || usedDegrees.has('b5')) {
-    legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEGREE_COLORS['5']}"></div>5th</div>`);
+    legendItems.push(legendItemHTML(DEGREE_COLORS['5'], '5th'));
   }
-  legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${DEFAULT_TONE_COLOR}"></div>Scale tone</div>`);
+  legendItems.push(legendItemHTML(DEFAULT_TONE_COLOR, 'Scale tone'));
   const legendHTML = `<div class="legend">${legendItems.join('')}</div>`;
 
-  const output = document.getElementById('output');
-  output.innerHTML = '';
-
-  const hdr = document.createElement('div');
-  hdr.className = 'output-header';
-  hdr.innerHTML = `
-    <h2>${keyDisplay} ${modeName}</h2>
-    <div class="subtitle">${shapesMode ? 'Positional shapes · standard tuning (EADGBe)' : 'Full fretboard · standard tuning (EADGBe)'}</div>
-  `;
-  output.appendChild(hdr);
-
-  const nr = document.createElement('div');
-  nr.className = 'notes-row';
-  nr.style.cssText = 'max-width:980px;margin:0 auto 24px;';
-  nr.innerHTML = noteBadgesHTML;
-  output.appendChild(nr);
-
-  if (!shapesMode) {
-    const card = document.createElement('div');
-    card.className = 'diagram-card';
-    card.innerHTML = `<div class="fretboard-scroll">${renderFullFretboard(scaleNotes, noteInfo)}</div>`;
-    output.appendChild(card);
-  } else {
-    const shapes = computeModalBoxes(selectedKey, noteInfo);
-
-    const countLbl = document.createElement('div');
-    countLbl.className = 'shapes-count-label';
-    countLbl.textContent = `${shapes.length} positions · standard tuning`;
-    output.appendChild(countLbl);
-
-    const grid = document.createElement('div');
-    grid.className = 'shapes-grid';
-
-    shapes.forEach(shape => {
-      const card = document.createElement('div');
-      card.className = 'diagram-card shape-card';
-      card.innerHTML = `
-        <div class="shape-title">${shape.label}</div>
-        <div class="subtitle">${shape.sublabel}</div>
-        <div class="fretboard-scroll">${renderShape(shape)}</div>
-      `;
-      grid.appendChild(card);
-    });
-
-    output.appendChild(grid);
-  }
-
-  const legendPanel = document.createElement('div');
-  legendPanel.className = 'legend-panel';
-  legendPanel.innerHTML = `<div class="legend-title">Legend</div>${legendHTML}`;
-  output.appendChild(legendPanel);
+  // renderScaleOutput comes from fretboard.js.
+  renderScaleOutput({
+    title: `${keyDisplay} ${modeName}`,
+    noteBadgesHTML,
+    legendHTML,
+    shapesMode,
+    scaleNotes,
+    noteInfo,
+    computeShapes: () => computeModalBoxes(selectedKey, noteInfo),
+  });
 }
 
 // Default selections on startup

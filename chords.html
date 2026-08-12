@@ -428,44 +428,12 @@
 
   <script src="lib/svg-utils.js"></script>
   <script src="lib/theory.js"></script>
+  <script src="lib/triads.js"></script>
   <script src="lib/circle-of-fifths.js"></script>
   <script>
     // ── Note helpers ──────────────────────────────────────────────────────────────
     // NOTES, LETTERS, LETTER_SEMITONE, and noteIndex() come from theory.js.
-
-    // Spell a scale so each degree uses the next letter name in sequence,
-    // adding the accidental needed to hit the correct pitch.
-    function spellScale(rootStr, intervals) {
-      const rootPc = noteIndex(rootStr);
-      const startLetterIdx = LETTERS.indexOf(rootStr[0]);
-      return intervals.map((iv, i) => {
-        const targetPc = (rootPc + iv) % 12;
-        const letter = LETTERS[(startLetterIdx + i) % 7];
-        const diff = (targetPc - LETTER_SEMITONE[letter] + 12) % 12;
-        const acc = diff === 0 ? '' : diff === 1 ? '#' : diff === 2 ? '##'
-                  : diff === 11 ? 'b' : diff === 10 ? 'bb' : '?';
-        return letter + acc;
-      });
-    }
-
-    // When a key has two enharmonic names (e.g. "C#/Db"), pick the spelling
-    // with the fewest accidentals; heavily penalise double accidentals and,
-    // on an exact tie, prefer flats.
-    function chooseBestRoot(keyStr, intervals) {
-      const candidates = keyStr.split('/');
-      let best = candidates[0], bestScore = Infinity;
-      for (const cand of candidates) {
-        let score = 0;
-        for (const n of spellScale(cand, intervals)) {
-          const acc = n.slice(1);
-          if (acc === '##' || acc === 'bb') score += 100;
-          score += acc.length;
-          if (acc.includes('#')) score += 0.1; // tie-break toward flats
-        }
-        if (score < bestScore) { bestScore = score; best = cand; }
-      }
-      return best;
-    }
+    // spellScale and chooseBestRoot come from lib/triads.js.
 
     // ── Headstock logo (curved text) ─────────────────────────────────────────────
     //
@@ -574,14 +542,7 @@
     renderHeadstockLogo();
 
     // ── Circle of Fifths (Key + Mode selector) ───────────────────────────────────
-
-    // Maps a circle-of-fifths pitch-class name onto the keyStr format the
-    // rest of the app expects (matches the old <select id="key-select"> values).
-    const KEYSTR_MAP = {
-      'C': 'C', 'C#': 'C#/Db', 'D': 'D', 'D#': 'D#/Eb', 'E': 'E', 'F': 'F',
-      'F#': 'F#/Gb', 'G': 'G', 'G#': 'G#/Ab', 'A': 'A', 'A#': 'A#/Bb', 'B': 'B'
-    };
-
+    // KEYSTR_MAP comes from lib/triads.js.
     // MAJOR_KEYS, MINOR_KEYS, and renderCircleOfFifths come from circle-of-fifths.js.
     // getPosition, createArcPath, and createSVGElement come from svg-utils.js.
 
@@ -838,63 +799,8 @@
     })();
 
     // ── Scale / chord data ─────────────────────────────────────────────────────────
-
-    const MAJOR_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
-    const MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 10];
-    const MAJOR_QUALITIES = ['maj', 'min', 'min', 'maj', 'maj', 'min', 'dim'];
-    const MINOR_QUALITIES = ['min', 'dim', 'maj', 'min', 'min', 'maj', 'maj'];
-
-    const ROMAN_MAJOR = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
-    const ROMAN_MINOR = ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'];
-
-    function getKeyRoot(keyStr, mode) {
-      const intervals = mode === 'major' ? MAJOR_INTERVALS : MINOR_INTERVALS;
-      return chooseBestRoot(keyStr, intervals);
-    }
-
-    function getScaleChords(keyStr, mode) {
-      const intervals = mode === 'major' ? MAJOR_INTERVALS : MINOR_INTERVALS;
-      const qualities = mode === 'major' ? MAJOR_QUALITIES : MINOR_QUALITIES;
-      const root = chooseBestRoot(keyStr, intervals);
-      return spellScale(root, intervals).map((note, i) => ({
-        note,
-        quality: qualities[i]
-      }));
-    }
-
-    // ── String set definitions ─────────────────────────────────────────────────────
-    // Open string pitches (note indices)
-
-    const STRING_SETS = {
-      EAD: {
-        openNotes: [4, 9, 2],   // E, A, D
-        labels: ['E', 'A', 'D'],
-        stringIndices: [0, 1, 2]  // Position on full 6-string guitar
-      },
-      ADG: {
-        openNotes: [9, 2, 7],   // A, D, G
-        labels: ['A', 'D', 'G'],
-        stringIndices: [1, 2, 3]
-      },
-      DGB: {
-        openNotes: [2, 7, 11],  // D, G, B
-        labels: ['D', 'G', 'B'],
-        stringIndices: [2, 3, 4]
-      },
-      GBe: {
-        openNotes: [7, 11, 4],  // G, B, e
-        labels: ['G', 'B', 'e'],
-        stringIndices: [3, 4, 5]
-      }
-    };
-
-    // ── Triad intervals ────────────────────────────────────────────────────────────
-
-    const TRIAD_INTERVALS = {
-      maj: [0, 4, 7],   // root, major 3rd, perfect 5th
-      min: [0, 3, 7],   // root, minor 3rd, perfect 5th
-      dim: [0, 3, 6]    // root, minor 3rd, diminished 5th
-    };
+    // MAJOR_QUALITIES/MINOR_QUALITIES, ROMAN_MAJOR/ROMAN_MINOR, getKeyRoot,
+    // getScaleChords, STRING_SETS, and TRIAD_INTERVALS come from lib/triads.js.
 
     // Shell voicings for 7th chords (R-3-7, omitting 5th)
     const MAJ7_INTERVALS = {
@@ -913,18 +819,7 @@
     const SUS2_INTERVALS  = { maj: [0, 2, 7], min: [0, 2, 7], dim: [0, 2, 7] };
     const SUS4_INTERVALS  = { maj: [0, 5, 7], min: [0, 5, 7], dim: [0, 5, 7] };
 
-    // Spell a single chord tone using the correct letter name — the letter
-    // is `letterOffset` steps up the musical alphabet from the chord root's
-    // own letter (0 = same letter as root, 2 = a third up, etc.), with the
-    // accidental chosen to land on the required pitch class.
-    function spellChordTone(rootStr, letterOffset, targetPc) {
-      const startLetterIdx = LETTERS.indexOf(rootStr[0]);
-      const letter = LETTERS[(startLetterIdx + letterOffset) % 7];
-      const diff = (targetPc - LETTER_SEMITONE[letter] + 12) % 12;
-      const acc = diff === 0 ? '' : diff === 1 ? '#' : diff === 2 ? '##'
-                : diff === 11 ? 'b' : diff === 10 ? 'bb' : '?';
-      return letter + acc;
-    }
+    // spellChordTone comes from lib/triads.js.
 
     // ── Calculate triad voicings ───────────────────────────────────────────────────
 
@@ -966,37 +861,21 @@
       }
       
       const set = STRING_SETS[stringSet];
-      
+
       // Get the three notes of the chord
       const notes = intervals.map(iv => (ri + iv) % 12);
       const noteNames = intervals.map((iv, idx) =>
         spellChordTone(rootNote, letterOffsets[idx], (ri + iv) % 12));
-      
-      // Reorder based on inversion
-      // Root position: R-3-5/7, First: 3-5/7-R, Second: 5/7-R-3
-      let orderedNotes;
-      let orderedRoles;
-      let orderedNoteNames;
-      if (inversion === 0) {
-        orderedNotes = [notes[0], notes[1], notes[2]];
-        orderedRoles = [roleNames[0], roleNames[1], roleNames[2]];
-        orderedNoteNames = [noteNames[0], noteNames[1], noteNames[2]];
-      } else if (inversion === 1) {
-        orderedNotes = [notes[1], notes[2], notes[0]];
-        orderedRoles = [roleNames[1], roleNames[2], roleNames[0]];
-        orderedNoteNames = [noteNames[1], noteNames[2], noteNames[0]];
-      } else {
-        orderedNotes = [notes[2], notes[0], notes[1]];
-        orderedRoles = [roleNames[2], roleNames[0], roleNames[1]];
-        orderedNoteNames = [noteNames[2], noteNames[0], noteNames[1]];
-      }
-      
+
+      // Reorder based on inversion: Root R-3-5/7, First 3-5/7-R, Second 5/7-R-3
+      // (rotateForInversion comes from lib/triads.js).
+      const orderedNotes = rotateForInversion(notes, inversion);
+      const orderedRoles = rotateForInversion(roleNames, inversion);
+      const orderedNoteNames = rotateForInversion(noteNames, inversion);
+
       // Calculate fret for each string to produce the required note
-      const frets = orderedNotes.map((targetNote, i) => {
-        const openNote = set.openNotes[i];
-        let fret = (targetNote - openNote + 12) % 12;
-        return fret;
-      });
+      // (fretsFromOpenNotes comes from lib/triads.js).
+      const frets = fretsFromOpenNotes(orderedNotes, set.openNotes);
 
       // Find the tightest playable octave position. Each string's note can be
       // played at its raw fret (0–11) or an octave higher (12–23); try every
@@ -1034,135 +913,7 @@
       };
     }
 
-    // ── SVG triad diagram ──────────────────────────────────────────────────────────
-
-    function drawTriadDiagram(voicing) {
-      if (!voicing) {
-        return `<div class="no-chord">No voicing</div>`;
-      }
-
-      const { frets, stringLabels, noteRoles, noteNames } = voicing;
-
-      const playedNonZero = frets.filter(f => f > 0);
-      const minFret = playedNonZero.length ? Math.min(...playedNonZero) : 0;
-      const maxFret = Math.max(...frets);
-      
-      const hasOpenStrings = frets.some(f => f === 0);
-      const isOpenPosition = hasOpenStrings && maxFret <= 4;
-      const startFret = isOpenPosition ? 1 : Math.max(1, minFret);
-
-      // The window needs to reach whichever fretted note sits highest above
-      // startFret. Default to 5 frets (the normal comfortable-stretch case)
-      // and only grow it for voicings that genuinely need more room, rather
-      // than clipping notes that fall outside a fixed window.
-      const framesNeeded = Math.max(0, maxFret - startFret) + 1;
-      const nFrets = Math.max(5, framesNeeded);
-
-      const W = 100, H = 140;
-      const mL = 38, mT = 32, mR = 12, mB = 24;
-      const gridW = W - mL - mR;
-      const gridH = H - mT - mB;
-      const nStr = 3;
-      const ssp = gridW / (nStr - 1);
-      const fsp = gridH / nFrets;
-      const dotR = 9, oR = 6;
-
-      let svg = [];
-      const hasNut = startFret === 1;
-      const topY = mT + (hasNut ? 4 : 0);
-
-      // Nut or fret number
-      if (hasNut) {
-        svg.push(`<rect x="${mL}" y="${mT}" width="${gridW}" height="4" fill="#c9a84c"/>`);
-      } else {
-        svg.push(`<text x="${mL - 12}" y="${mT + fsp * 0.7}" text-anchor="end" font-family="DM Mono,monospace" font-size="10" fill="#7a7060">${startFret}fr</text>`);
-      }
-
-      // Fret lines
-      for (let f = 0; f <= nFrets; f++) {
-        if (f === 0 && hasNut) continue;
-        const y = topY + f * fsp;
-        svg.push(`<line x1="${mL}" y1="${y}" x2="${mL + gridW}" y2="${y}" stroke="#2e2b25" stroke-width="1"/>`);
-      }
-
-      // String lines
-      const bottomY = topY + nFrets * fsp;
-      for (let s = 0; s < nStr; s++) {
-        const x = mL + s * ssp;
-        svg.push(`<line x1="${x}" y1="${topY}" x2="${x}" y2="${bottomY}" stroke="#5a5040" stroke-width="1.2"/>`);
-      }
-
-      // Color mapping for note roles
-      const roleColors = {
-        root: '#c9a84c',
-        third: '#6a9fb5',
-        fifth: '#8b5e3c',
-        seventh: '#7b68a6',
-        sus: '#6ab57a'
-      };
-
-      // Text color chosen for contrast against each fill color
-      const roleTextColors = {
-        root: '#0f0e0c',
-        third: '#e8e0d0',
-        fifth: '#e8e0d0',
-        seventh: '#e8e0d0',
-        sus: '#0f0e0c'
-      };
-
-      // Fretted/open markers, each labelled with its note letter
-      frets.forEach((fret, i) => {
-        const x = mL + i * ssp;
-        const color = roleColors[noteRoles[i]];
-        const noteName = noteNames[i];
-        const labelSize = noteName.length <= 1 ? 8 : noteName.length === 2 ? 7 : 5.5;
-
-        if (fret === 0) {
-          svg.push(`<circle cx="${x}" cy="${mT - 10}" r="${oR}" fill="var(--bg)" stroke="${color}" stroke-width="2"/>`);
-          svg.push(`<text x="${x}" y="${mT - 10}" text-anchor="middle" dominant-baseline="central" font-family="DM Mono,monospace" font-size="${labelSize - 1}" font-weight="500" fill="${color}">${noteName}</text>`);
-        } else {
-          const rf = fret - startFret + 1;
-          const y = topY + (rf - 0.5) * fsp;
-          if (y >= topY - 1 && y <= bottomY + 1) {
-            svg.push(`<circle cx="${x}" cy="${y}" r="${dotR}" fill="${color}"/>`);
-            svg.push(`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-family="DM Mono,monospace" font-size="${labelSize}" font-weight="600" fill="${roleTextColors[noteRoles[i]]}">${noteName}</text>`);
-          }
-        }
-      });
-
-      // String labels at bottom
-      stringLabels.forEach((n, i) => {
-        svg.push(`<text x="${mL + i * ssp}" y="${H - 4}" text-anchor="middle" font-family="DM Mono,monospace" font-size="9" fill="#5a5040">${n}</text>`);
-      });
-
-      return `<svg class="chord-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${svg.join('')}</svg>`;
-    }
-
-    // ── UI helpers ─────────────────────────────────────────────────────────────────
-
-    function formatChordName(note, quality, chordType) {
-      if (chordType === 'maj7') {
-        if (quality === 'maj') return note + ' maj 7';
-        if (quality === 'min') return note + 'm 7';
-        return note + 'ø 7';
-      } else if (chordType === 'dom7') {
-        if (quality === 'maj') return note + ' 7';
-        if (quality === 'min') return note + 'm 7';
-        return note + '° 7';
-      } else if (chordType === 'sus2') {
-        return note + ' sus 2';
-      } else if (chordType === 'sus4') {
-        return note + ' sus 4';
-      } else if (chordType === 'dim') {
-        return note + '°';
-      } else if (chordType === 'aug') {
-        return note + '+';
-      } else {
-        if (quality === 'maj') return note;
-        if (quality === 'min') return note + 'm';
-        return note + '°';
-      }
-    }
+    // drawTriadDiagram and formatChordName come from lib/triads.js.
 
     // ── Generate ───────────────────────────────────────────────────────────────────
 
@@ -1210,7 +961,7 @@
       const row = document.getElementById('chord-row');
       row.innerHTML = '';
 
-      const scaleIntervals = scaleMode === 'major' ? MAJOR_INTERVALS : MINOR_INTERVALS;
+      const scaleIntervals = scaleMode === 'major' ? MAJOR_SCALE_INTERVALS : MINOR_SCALE_INTERVALS;
       const rootPc = noteIndex(root);
       const scalePcSet = new Set(scaleIntervals.map(iv => (rootPc + iv) % 12));
       const isSus = chordType === 'sus2' || chordType === 'sus4';
