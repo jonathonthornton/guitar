@@ -6,14 +6,14 @@
    triad-position.html (scales.html also uses the circle-of-fifths pieces). */
 
 :root {
-  --bg: #0f0e0c;
-  --surface: #1a1814;
-  --surface2: #221f19;
-  --border: #2e2b25;
-  --amber: #c9a84c;
-  --amber-dim: #6b5828;
-  --cream: #e8e0d0;
-  --muted: #7a7060;
+  --bg: #0a0e1a;
+  --surface: #101623;
+  --surface2: #1b2540;
+  --border: #2c3a5e;
+  --amber: #e0a940;
+  --amber-dim: #a67a2e;
+  --cream: #e8edf7;
+  --muted: #7488ac;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,7 +37,7 @@ header h1 {
   letter-spacing: 0.06em;
   color: var(--amber);
   line-height: 1;
-  text-shadow: 0 0 60px rgba(201,168,76,0.3);
+  text-shadow: 0 0 60px rgba(224,169,64,0.3);
 }
 
 header p {
@@ -224,9 +224,14 @@ footer {
   border-radius: 3px;
 }
 
+/* Fixed gold rather than var(--amber): this matches the root-note color
+   modes.html/scales.html actually paint via DEGREE_COLORS (a fretboard note
+   color, left unchanged by the theme), not the site's UI accent. In practice
+   buildNoteBadgesHTML() always sets an inline background that overrides
+   this, but it's worth keeping correct in case that ever changes. */
 .note-badge.root {
-  background: var(--amber);
-  border-color: var(--amber);
+  background: #e8b62d;
+  border-color: #e8b62d;
   color: var(--bg);
   font-weight: 500;
 }
@@ -346,9 +351,9 @@ svg.fretboard { display: block; }
    qualifier, since it only ever renders major-key wedges), so these never
    apply there beyond what it already sets to the same values. */
 .circle-segment.major:hover { fill: var(--amber-dim); }
-.circle-segment.minor:hover { fill: #4a3a28; }
+.circle-segment.minor:hover { fill: var(--amber-dim); }
 .circle-segment.major.selected { fill: var(--amber); }
-.circle-segment.minor.selected { fill: #8b5e3c; }
+.circle-segment.minor.selected { fill: #c99a3a; }
 
 /* Chord/triad result-card family — shared by chords.html and
    triad-position.html, which both render a row of chord-card results, each
