@@ -60,13 +60,10 @@
       text-align: center;
     }
 
-    label {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
+    /* A bare `label {}` rule used to live here, but .control-group label
+       from theme.css (a more specific selector) always wins for every label
+       on this page — they're all inside a .control-group — so it never had
+       any effect. Removed rather than promoted. */
 
     select {
       background: var(--bg);
@@ -154,15 +151,12 @@
       outline-offset: 2px;
     }
 
-    #key-label {
-      text-align: center;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.8rem;
-      color: var(--amber);
-      margin-bottom: 6px;
-      letter-spacing: 0.08em;
-      min-height: 2rem;
-    }
+    /* #key-label, #chord-row, .chord-card (base), @keyframes fadeUp,
+       .chord-name, .chord-numeral, .inversion-row, .inversion-item,
+       svg.chord-svg, and .no-chord come from theme.css (shared with
+       triad-position.html). #string-label and .chord-inversion stay local
+       since they're either page-specific (id) or differ slightly between
+       the two pages. */
 
     #string-label {
       text-align: center;
@@ -174,89 +168,12 @@
       margin-bottom: 40px;
     }
 
-    #chord-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 24px;
-      justify-content: center;
-      max-width: 1400px;
-    }
-
-    .chord-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      animation: fadeUp 0.4s ease both;
-      min-width: 120px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 16px 12px;
-      border-radius: 4px;
-    }
-
-    @keyframes fadeUp {
-      from {
-        opacity: 0;
-        transform: translateY(16px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .chord-name {
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 500;
-      font-size: 1.2rem;
-      color: var(--amber);
-      letter-spacing: 0.02em;
-    }
-
-    .chord-numeral {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.2em;
-      color: var(--muted);
-    }
-
     .chord-inversion {
       font-family: 'DM Mono', monospace;
       font-size: 0.55rem;
       letter-spacing: 0.12em;
       color: #5a5040;
       text-transform: uppercase;
-    }
-
-    .inversion-row {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin-top: 4px;
-    }
-
-    .inversion-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-
-    svg.chord-svg {
-      display: block;
-    }
-
-    .no-chord {
-      color: var(--muted);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      font-style: italic;
-      width: 80px;
-      text-align: center;
-      padding: 16px 0;
-      line-height: 1.5;
     }
 
     .legend {
@@ -300,12 +217,9 @@
     .legend-dot.seventh { background: #7b68a6; }
     .legend-dot.sus { background: #6ab57a; }
 
-    /* footer comes from theme.css; stretched to full width here since this
-       page's body is a centering flexbox, which would otherwise shrink the
-       footer (and its border-top divider) down to its text's width. */
-    footer {
-      align-self: stretch;
-    }
+    /* footer's align-self:stretch (needed because this page's body is a
+       centering flexbox) and .circle-segment's base + major/minor
+       hover/selected states come from theme.css. */
 
     /* ── Circle of fifths (key + mode selector) ──────────────────────────────── */
 
@@ -318,32 +232,6 @@
       width: 100%;
       max-width: 280px;
       height: auto;
-    }
-
-    .circle-segment {
-      cursor: pointer;
-      transition: fill 0.15s ease;
-    }
-
-    .circle-segment.major:hover {
-      fill: #6b5828;
-    }
-
-    .circle-segment.minor:hover {
-      fill: #4a3a28;
-    }
-
-    .circle-segment.major.selected {
-      fill: var(--amber);
-    }
-
-    .circle-segment.minor.selected {
-      fill: #8b5e3c;
-    }
-
-    .circle-text {
-      pointer-events: none;
-      user-select: none;
     }
 
     /* ── String set picker (fretboard) ───────────────────────────────────────── */

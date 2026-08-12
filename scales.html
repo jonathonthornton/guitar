@@ -11,9 +11,7 @@
 <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
 <link rel="stylesheet" href="theme.css">
 <style>
-  body {
-    padding: 40px 24px 80px;
-  }
+  /* body padding comes from theme.css. */
 
   .controls {
     max-width: 980px;
@@ -60,24 +58,8 @@
      .legend-panel/.legend-title/.legend/.legend-item/.legend-dot,
      .output-header, .shapes-count-label, .circle-container,
      .stave-container, #key-stave, .stave-label, #circle-of-fifths (base),
-     .circle-segment (base), and .circle-text come from theme.css. */
-
-  /* Circle of Fifths styles */
-  .circle-segment.major:hover {
-    fill: var(--amber-dim);
-  }
-
-  .circle-segment.minor:hover {
-    fill: #4a3a28;
-  }
-
-  .circle-segment.major.selected {
-    fill: var(--amber);
-  }
-
-  .circle-segment.minor.selected {
-    fill: #8b5e3c;
-  }
+     .circle-segment (base + major/minor hover/selected), and .circle-text
+     come from theme.css. */
 
   .circle-hint {
     text-align: center;

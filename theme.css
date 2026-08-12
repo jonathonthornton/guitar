@@ -1,6 +1,9 @@
-/* Shared design system for chords.html, modes.html, and scales.html:
-   color palette, base reset, header/footer chrome, the "back to home" link,
-   and the pill-style radio control used by the key/type/mode selectors. */
+/* Shared design system for chords.html, modes.html, scales.html, and
+   triad-position.html: color palette, base reset, header/footer chrome, the
+   "back to home" link, the pill-style radio control used by the key/type/mode
+   selectors, the diagram/output display shared by modes.html and scales.html,
+   and the circle-of-fifths and chord-card widgets shared by chords.html and
+   triad-position.html (scales.html also uses the circle-of-fifths pieces). */
 
 :root {
   --bg: #0f0e0c;
@@ -20,6 +23,7 @@ body {
   color: var(--cream);
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
+  padding: 40px 24px 80px;
 }
 
 header {
@@ -54,6 +58,11 @@ footer {
   margin-top: 56px;
   padding-top: 24px;
   border-top: 1px solid var(--border);
+  /* Only has an effect on pages whose body is a centering flexbox
+     (chords.html, triad-position.html) — without it the footer, as a flex
+     item, would shrink to its text's width and take its border-top divider
+     with it. A no-op on every other page. */
+  align-self: stretch;
 }
 
 .back-link {
@@ -329,4 +338,109 @@ svg.fretboard { display: block; }
 .circle-text {
   pointer-events: none;
   user-select: none;
+}
+
+/* Two-ring circle-of-fifths hover/selected states — shared by chords.html,
+   scales.html, and triad-position.html. modes.html's single-ring wheel uses
+   its own plain .circle-segment:hover/.selected instead (no .major/.minor
+   qualifier, since it only ever renders major-key wedges), so these never
+   apply there beyond what it already sets to the same values. */
+.circle-segment.major:hover { fill: var(--amber-dim); }
+.circle-segment.minor:hover { fill: #4a3a28; }
+.circle-segment.major.selected { fill: var(--amber); }
+.circle-segment.minor.selected { fill: #8b5e3c; }
+
+/* Chord/triad result-card family — shared by chords.html and
+   triad-position.html, which both render a row of chord-card results, each
+   with one fretboard diagram per inversion and a "no voicing" fallback.
+   Each page keeps some pieces local: .chord-inversion (letter-spacing
+   differs) and the .legend/.legend-item/.legend-dot block (a different,
+   page-local legend layout — not the .legend-panel family above, which
+   belongs to modes.html/scales.html and uses the same class names for a
+   different widget). triad-position.html also adds one supplemental
+   property to .chord-card (max-width) and .inversion-row (flex-wrap)
+   locally, since it can show more voicings per card than chords.html does. */
+#key-label {
+  text-align: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  color: var(--amber);
+  margin-bottom: 6px;
+  letter-spacing: 0.08em;
+  min-height: 2rem;
+}
+
+#chord-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+  max-width: 1400px;
+}
+
+.chord-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: fadeUp 0.4s ease both;
+  min-width: 120px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 16px 12px;
+  border-radius: 4px;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chord-name {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 1.2rem;
+  color: var(--amber);
+  letter-spacing: 0.02em;
+}
+
+.chord-numeral {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+
+.inversion-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.inversion-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+svg.chord-svg { display: block; }
+
+.no-chord {
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  font-style: italic;
+  width: 80px;
+  text-align: center;
+  padding: 16px 0;
+  line-height: 1.5;
 }
