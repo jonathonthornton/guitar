@@ -485,17 +485,13 @@ function computeBluesShapes(rootPc, blueNote, noteInfo) {
 // tighter and fewer than the 3-notes-per-string system.
 function computeDiatonicBoxes(rootPc, isMajor, scaleNotes, noteInfo) {
   const boxes = pentatonicBoxes(rootPc, isMajor);
-  return boxes.map((box, idx) => {
-    const all = box.frets.flat();
-    const lo = Math.min(...all), hi = Math.max(...all);
-    const frets = fillWindow(scaleNotes, lo, hi);
-    return finalizeShape(frets, noteInfo, idx);
-  });
+  return boxes.map((box, idx) => finalizeShape(diatonicBoxFromPentatonicBox(scaleNotes, box), noteInfo, idx));
 }
 
-// finalizeShape and fillWindow come from fretboard.js. finalizeShape's
-// anchorOverride pins the position's anchor/label (used by blues, whose blue
-// notes can extend a fret past the core box but shouldn't shift its position).
+// finalizeShape and diatonicBoxFromPentatonicBox come from fretboard.js.
+// finalizeShape's anchorOverride pins the position's anchor/label (used by
+// blues, whose blue notes can extend a fret past the core box but shouldn't
+// shift its position).
 
 // Dispatcher: chooses the correct positional convention for the given type.
 function computeShapes(scaleType, rootNote, degreeNames, spelledNotes) {

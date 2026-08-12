@@ -479,8 +479,8 @@ function buildNoteInfo(parentKey, modeIndex) {
 }
 
 // makeDot, A_MINOR_PENT_BOXES/A_MINOR_PENT_ROOT_FRET/PENT_BOXES_REL,
-// fretRangeOverlap, pentatonicBoxesForRoot, and fillWindow come from
-// fretboard.js.
+// fretRangeOverlap, pentatonicBoxesForRoot, and diatonicBoxFromPentatonicBox
+// come from fretboard.js.
 
 // Modes always use 7-note diatonic fill of the pentatonic-shaped box windows —
 // the same "5 Pattern" system as the main page's Diatonic type. The window
@@ -492,34 +492,8 @@ function buildNoteInfo(parentKey, modeIndex) {
 // 3rd) anchor directly on their own tonic. Using the minor-shaped window for
 // every mode left some major-family scales' windows too narrow on certain
 // strings, cutting off notes a player would expect (e.g. G Mixolydian).
-//
-// Even with the right family, a raw pentatonic-sized window (tuned for 2
-// notes/string) is occasionally a fret too narrow to fully capture a 7-note
-// scale — some strings then end up with only 1 note instead of the expected
-// 2-3 (e.g. E Phrygian's 4th position was missing F on the low E string,
-// which sat just past the window's edge). fillWindow widens the window a
-// fret at a time, preferring whichever side most improves coverage, until
-// every string has at least 2 notes.
-function underfilledCount(frets) {
-  return frets.filter(sf => sf.length < 3).length;
-}
-
-// Before including a note at the highest fret on a string, check whether
-// that same pitch will already appear at the lowest fret on the next string
-// up. If so, drop it from the current (lower) string — otherwise the same
-// physical pitch shows up twice, once on each of two adjacent strings, which
-// reads as a duplicated note on the diagram.
-function dedupeAdjacentStrings(frets) {
-  const result = frets.map(sf => [...sf]);
-  for (let s = 0; s < NUM_STRINGS - 1; s++) {
-    const cur = result[s], next = result[s + 1];
-    if (!cur.length || !next.length) continue;
-    const curHighPitch = OPEN_ABS[s] + cur[cur.length - 1];
-    const nextLowPitch = OPEN_ABS[s + 1] + next[0];
-    if (curHighPitch === nextLowPitch) cur.pop();
-  }
-  return result;
-}
+// diatonicBoxFromPentatonicBox() then widens each box as needed so every
+// string gets its full 3 notes.
 
 // The five CAGED box shapes (fret positions per string) for a given parent
 // key, computed once and cached. Every mode of the same key shares the exact
@@ -539,32 +513,7 @@ function computeParentKeyBoxShapes(parentKey) {
   const anchorPc = ((parentPc - 3) % 12 + 12) % 12; // relative-minor anchor, gives well-spaced windows for a full 7-note fill
   const boxes = pentatonicBoxesForRoot(anchorPc);
 
-  cachedShapes = boxes.map(box => {
-    const all = box.frets.flat();
-    const lo = Math.min(...all), hi = Math.max(...all);
-    const originalFrets = fillWindow(scaleNotes, lo, hi);
-    const maxSpan = 5; // keep the position within a reasonable hand stretch
-
-    // Prefer widening upward first — the natural direction to reach for one
-    // more note — then fall back to widening downward if that alone doesn't
-    // get every string to a full 3 notes.
-    let wideLo = lo, wideHi = hi;
-    while (underfilledCount(fillWindow(scaleNotes, wideLo, wideHi)) > 0 && (wideHi - wideLo) < maxSpan) {
-      wideHi += 1;
-    }
-    while (underfilledCount(fillWindow(scaleNotes, wideLo, wideHi)) > 0 && (wideHi - wideLo) < maxSpan && wideLo > 1) {
-      wideLo -= 1;
-    }
-    const widenedFrets = fillWindow(scaleNotes, wideLo, wideHi);
-
-    // Only apply the wider window to strings that actually needed it —
-    // strings that already had 3 notes in the original window keep those
-    // exact notes, so widening never pads an already-complete string with an
-    // unwanted 4th.
-    const frets = originalFrets.map((orig, s) => orig.length >= 3 ? orig : widenedFrets[s].slice(0, 3));
-
-    return dedupeAdjacentStrings(frets);
-  });
+  cachedShapes = boxes.map(box => diatonicBoxFromPentatonicBox(scaleNotes, box));
   cachedShapesKey = parentKey;
   return cachedShapes;
 }
