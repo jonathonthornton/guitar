@@ -393,15 +393,8 @@ function buildNoteInfo(scaleNotes, rootNote, degreeNames, spelledNotes) {
 }
 
 // makeDot, A_MINOR_PENT_BOXES/A_MINOR_PENT_ROOT_FRET/PENT_BOXES_REL,
-// fretRangeOverlap, and pentatonicBoxesForRoot come from fretboard.js.
-
-// The minor pentatonic of a major key's root shares the same five boxes as the
-// relative minor (root minus 3 semitones). This keeps major and minor pentatonic
-// (and their derived triads/blues) on the identical CAGED shapes.
-function pentatonicBoxes(rootPc, isMajor) {
-  const minorRootPc = isMajor ? ((rootPc - 3) % 12 + 12) % 12 : rootPc;
-  return pentatonicBoxesForRoot(minorRootPc);
-}
+// fretRangeOverlap, pentatonicBoxesForRoot, pentatonicBoxes,
+// computeTriadShapes, and addOutOfBoxNote come from fretboard.js.
 
 // Pentatonic (major or minor): the five boxes, all notes shown.
 function computePentatonicShapes(rootPc, isMajor, noteInfo) {
@@ -409,71 +402,15 @@ function computePentatonicShapes(rootPc, isMajor, noteInfo) {
     finalizeShape(box.frets, noteInfo, idx));
 }
 
-// Triads: the same five pentatonic boxes, filtered to only chord tones.
-function computeTriadShapes(rootPc, isMajor, triadNotes, noteInfo) {
-  return pentatonicBoxes(rootPc, isMajor).map((box, idx) => {
-    const frets = box.frets.map((stringFrets, s) =>
-      stringFrets.filter(f => triadNotes.includes(getFretNote(s, f))));
-    return finalizeShape(frets, noteInfo, idx);
-  });
-}
-
 // Blues: the same five CAGED box positions used by pentatonic/triad/diatonic,
-// with the blue note (b5) added. Blue notes frequently land one fret outside the
-// core pentatonic box, so we scan one fret beyond each side to capture them; the
-// box's own anchor/position is preserved (so blues lines up with the other
-// types) and the diagram is drawn a fret wider on each side (see renderShape) so
-// no blue note is ever truncated. When the same blue-note pitch is reachable on
-// two adjacent strings (a unison), only one is kept — the one that sits directly
-// next to a pentatonic box note, where a player would actually finger it.
+// with the blue note (b5) added via addOutOfBoxNote (fretboard.js) — the box's
+// own anchor/position is preserved (so blues lines up with the other types)
+// and the diagram is drawn a fret wider on each side (see renderShape) so no
+// blue note is ever truncated.
 
 function computeBluesShapes(rootPc, blueNote, noteInfo) {
   return pentatonicBoxes(rootPc, false).map((box, idx) => {
-    const allFrets = box.frets.flat();
-    const lo = Math.min(...allFrets), hi = Math.max(...allFrets);
-
-    // Gather candidate blue notes (string, fret, absolute pitch, and whether it
-    // is adjacent to a pentatonic note already on that string).
-    const blueCandidates = [];
-    for (let s = 0; s < NUM_STRINGS; s++) {
-      for (let f = Math.max(0, lo - 1); f <= hi + 1; f++) {
-        if (getFretNote(s, f) === blueNote && !box.frets[s].includes(f)) {
-          const adjacent = box.frets[s].some(bf => Math.abs(bf - f) === 1);
-          blueCandidates.push({ s, f, pitch: OPEN_ABS[s] + f, adjacent });
-        }
-      }
-    }
-    // Keep one blue note per pitch: prefer the instance adjacent to a box note.
-    const chosenByPitch = new Map();
-    for (const c of blueCandidates) {
-      const existing = chosenByPitch.get(c.pitch);
-      if (!existing || (c.adjacent && !existing.adjacent)) chosenByPitch.set(c.pitch, c);
-    }
-    const blueByString = {};
-    for (const c of chosenByPitch.values()) {
-      (blueByString[c.s] = blueByString[c.s] || []).push(c.f);
-    }
-
-    // Don't let a blue note become the very first (lowest-fret) note in the
-    // position — that pulls the displayed range a fret to the left of the
-    // usual pentatonic anchor, making the whole shape look like it shifted
-    // compared to the other types. If the overall lowest fret in the box
-    // would be a blue note, drop just that one note.
-    let overallMin = lo, overallMinString = null;
-    for (const [sKey, fretsArr] of Object.entries(blueByString)) {
-      for (const f of fretsArr) {
-        if (f < overallMin) { overallMin = f; overallMinString = sKey; }
-      }
-    }
-    if (overallMinString !== null) {
-      const arr = blueByString[overallMinString];
-      arr.splice(arr.indexOf(overallMin), 1);
-    }
-
-    const frets = box.frets.map((stringFrets, s) => {
-      const combined = [...stringFrets, ...(blueByString[s] || [])];
-      return combined.sort((a, b) => a - b);
-    });
+    const frets = addOutOfBoxNote(box.frets, blueNote);
     return finalizeShape(frets, noteInfo, idx, box.anchor);
   });
 }

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guitar Triad Position Finder — Chords by Fretboard Region</title>
+  <title>Triads by Position</title>
   <meta name="description" content="Find every diatonic triad in a key that falls within a chosen neighbourhood of the fretboard. Pick a key and a 4-fret region from the nut to the 15th fret, and see all triads and inversions playable there.">
   <meta name="theme-color" content="#0a0e1a">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0e1a'/%3E%3Cline x1='9' y1='6' x2='9' y2='26' stroke='%234a5d85' stroke-width='1.5'/%3E%3Cline x1='16' y1='6' x2='16' y2='26' stroke='%234a5d85' stroke-width='1.5'/%3E%3Cline x1='23' y1='6' x2='23' y2='26' stroke='%234a5d85' stroke-width='1.5'/%3E%3Cline x1='9' y1='8' x2='23' y2='8' stroke='%23223050' stroke-width='1.5'/%3E%3Cline x1='9' y1='16' x2='23' y2='16' stroke='%23223050' stroke-width='1.5'/%3E%3Cline x1='9' y1='24' x2='23' y2='24' stroke='%23223050' stroke-width='1.5'/%3E%3Ccircle cx='9' cy='12' r='2.6' fill='%23e0a940'/%3E%3Ccircle cx='16' cy='20' r='2.6' fill='%23e0a940'/%3E%3Ccircle cx='23' cy='8' r='2.6' fill='%23e0a940'/%3E%3C/svg%3E">
@@ -29,10 +29,13 @@
        centering flexbox) comes from theme.css. */
 
     .controls {
-      display: flex;
-      gap: 32px;
-      flex-wrap: wrap;
-      justify-content: center;
+      display: grid;
+      grid-template-columns: minmax(260px, 300px) minmax(280px, 1fr);
+      grid-template-areas:
+        "key   stave"
+        "key   region";
+      column-gap: 40px;
+      row-gap: 32px;
       margin-bottom: 48px;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -42,24 +45,27 @@
       max-width: 900px;
     }
 
+    @media (max-width: 700px) {
+      .controls {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "key"
+          "stave"
+          "region";
+      }
+    }
+
     .control-group {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      flex: 1;
-      min-width: 140px;
     }
 
-    .control-group.control-key {
-      flex: 0 1 300px;
-    }
+    .control-group.control-key { grid-area: key; }
+    .control-group.control-stave { grid-area: stave; }
+    .control-group.control-region { grid-area: region; }
 
-    .control-group.control-region {
-      flex: 0 1 340px;
-    }
-
-    .control-group.control-key label,
-    .control-group.control-region label {
+    .control-group.control-key label {
       text-align: center;
     }
 
@@ -148,6 +154,7 @@
     .legend-dot.root { background: #c9a84c; }
     .legend-dot.third { background: #6a9fb5; }
     .legend-dot.fifth { background: #8b5e3c; }
+    .legend-dot.tone { background: #6e677e; }
 
     /* ── Circle of fifths (key selector) ─────────────────────────────────────── */
 
@@ -170,13 +177,12 @@
     .region-picker {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: flex-start;
     }
 
     .region-picker .neck-wrap {
       position: relative;
-      margin: 0 auto;
-      max-width: 300px;
+      max-width: 340px; /* matches #key-stave's max-width (theme.css) */
       width: 100%;
     }
 
@@ -247,7 +253,7 @@
 
   <header>
     <h1>Guitar Triads by Position</h1>
-    <p>Find every triad in a key within easy reach</p>
+    <p>Triads for each scale degree by position</p>
   </header>
 
   <div class="controls">
@@ -257,11 +263,18 @@
         <svg id="circle-of-fifths" width="400" height="400" viewBox="0 0 400 400"></svg>
       </div>
     </div>
+    <div class="control-group control-stave">
+      <label>Staff</label>
+      <div class="stave-container">
+        <svg id="key-stave" viewBox="10 0 550 173.33"></svg>
+        <div class="stave-label" id="stave-label"></div>
+      </div>
+    </div>
     <div class="control-group control-region">
       <label>Fretboard Region</label>
       <div class="region-picker">
         <div class="neck-wrap">
-          <svg id="neck" viewBox="0 0 300 90" xmlns="http://www.w3.org/2000/svg">
+          <svg id="neck" viewBox="13 0 287 90" xmlns="http://www.w3.org/2000/svg">
 
             <!-- ===== neck base ===== -->
             <rect x="20" y="23" width="260" height="34" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
@@ -305,6 +318,10 @@
       <div class="legend-dot fifth"></div>
       <span>Fifth (5)</span>
     </div>
+    <div class="legend-item">
+      <div class="legend-dot tone"></div>
+      <span>Scale tone (staff)</span>
+    </div>
   </div>
 
   <footer>Designed by Jon Thornton. Implemented by Claude.</footer>
@@ -313,6 +330,8 @@
   <script src="lib/theory.js"></script>
   <script src="lib/triads.js"></script>
   <script src="lib/circle-of-fifths.js"></script>
+  <script src="lib/stave.js"></script>
+  <script src="lib/region-picker.js"></script>
   <script>
     // ── Note helpers ──────────────────────────────────────────────────────────────
     // NOTES, LETTERS, LETTER_SEMITONE, and noteIndex come from theory.js.
@@ -332,6 +351,8 @@
         selectedKey,
         selectedKeyType,
         onSelect: (name, type) => selectKey(name, type),
+        onHover: (name, type) => renderStave(name, type),
+        onHoverEnd: () => renderStave(selectedKey, selectedKeyType),
       });
     }
 
@@ -339,98 +360,91 @@
       selectedKey = keyName;
       selectedKeyType = keyType;
       renderCircle();
+      renderStave(keyName, keyType);
       generate();
     }
 
-    // ── Fret region picker ───────────────────────────────────────────────────────
+    // ── Staff ──────────────────────────────────────────────────────────────────
+    // ROOT_SPELLING_MAJOR/MINOR, buildDiatonicScale, formatSpelledNote,
+    // absoluteStaffStep, LETTER_INDEX, MAJOR_SCALE_INTERVALS,
+    // MINOR_SCALE_INTERVALS, and getKeySignature come from theory.js.
+    // renderMusicStave comes from lib/stave.js, which calls back into this
+    // page's own degreeColor(index, degreeNames) to color each notehead —
+    // root/third/fifth match drawTriadDiagram's roleColors in lib/triads.js
+    // exactly (same colors as this page's own legend); every other diatonic
+    // degree (2, 4, 6, 7, etc.) gets the shared neutral "scale tone" gray,
+    // since this page only ever highlights chord tones elsewhere.
+    const DEGREE_COLORS = { 'Root': '#c9a84c', '3': '#6a9fb5', 'b3': '#6a9fb5', '5': '#8b5e3c' };
+    const DEFAULT_TONE_COLOR = '#6e677e';
+    const SEMITONE_DEGREE_NAMES =
+      ['Root', 'b2', '2', 'b3', '3', '4', 'b5', '5', 'b6', '6', 'b7', '7'];
 
-    const REGIONS = [
-      { lo: 0, hi: 3, label: 'Open – 3rd' },
-      { lo: 4, hi: 7, label: '4th – 7th' },
-      { lo: 8, hi: 11, label: '8th – 11th' },
-      { lo: 12, hi: 15, label: '12th – 15th' }
-    ];
+    function degreeColor(index, degreeNames) {
+      return DEGREE_COLORS[degreeNames[index]] || DEFAULT_TONE_COLOR;
+    }
+
+    // Octave-assigned notes for the selected key's own plain diatonic scale
+    // (major/Ionian or natural minor/Aeolian) — same octave-tracking
+    // algorithm modes.html/scales.html use for their own staves: start the
+    // tonic at octave 4 and bump the octave whenever the diatonic letter
+    // sequence wraps around (e.g. B -> C).
+    function keyStaffNotes(keyName, keyType) {
+      const table = keyType === 'minor' ? ROOT_SPELLING_MINOR : ROOT_SPELLING_MAJOR;
+      const [letter, accidental] = table[keyName];
+      const formula = keyType === 'minor' ? MINOR_SCALE_INTERVALS : MAJOR_SCALE_INTERVALS;
+      const diatonic = buildDiatonicScale(letter, accidental, formula);
+
+      let octave = 4;
+      let prevLetterIdx = null;
+      return diatonic.map(entry => {
+        const letterIdx = LETTER_INDEX[entry.letter];
+        if (prevLetterIdx !== null && letterIdx < prevLetterIdx) octave++;
+        prevLetterIdx = letterIdx;
+        return {
+          letter: entry.letter,
+          accidental: entry.accidental,
+          octave,
+          name: formatSpelledNote(entry),
+          step: absoluteStaffStep(entry.letter, octave),
+        };
+      });
+    }
+
+    function renderStave(keyName, keyType) {
+      const sig = getKeySignature(keyName, keyType);
+      const notes = keyStaffNotes(keyName, keyType);
+      const scaleIntervals = keyType === 'minor' ? MINOR_SCALE_INTERVALS : MAJOR_SCALE_INTERVALS;
+      const degreeNames = scaleIntervals.map(iv => SEMITONE_DEGREE_NAMES[iv]);
+
+      renderMusicStave({
+        sig,
+        notes,
+        degreeNames,
+        getLabelLines: () => {
+          const symbol = sig.type === 'sharp' ? '♯' : '♭';
+          const count = sig.letters.length;
+          const sigLine = count === 0 ? 'No sharps or flats'
+            : `${count} ${sig.type}${count > 1 ? 's' : ''}: ${sig.letters.map(l => l + symbol).join(' ')}`;
+          const modeLabel = keyType === 'major' ? 'Major' : 'Minor';
+          return [`${sig.tonicName} ${modeLabel}`, sigLine];
+        },
+      });
+    }
+
+    // ── Fret region picker ───────────────────────────────────────────────────────
+    // REGIONS, buildRegionPicker, and paintRegionPicker come from
+    // lib/region-picker.js.
 
     let selectedRegion = REGIONS[0];
 
-    (function () {
-      const NECK_X0 = 20, NECK_X1 = 280, NUT_X = 20;
-      const NECK_Y0 = 23, NECK_Y1 = 57;
-      const TOTAL_FRETS = 15;
-
-      function fretX(i) {
-        return NECK_X0 + (NECK_X1 - NECK_X0) * (i / TOTAL_FRETS);
-      }
-
-      // Fret tick lines
-      const ticksGroup = document.getElementById('fretTicks');
-      for (let i = 1; i <= TOTAL_FRETS; i++) {
-        const x = fretX(i);
-        ticksGroup.appendChild(createSVGElement('line', {
-          x1: x, y1: NECK_Y0, x2: x, y2: NECK_Y1,
-          stroke: 'var(--border)',
-          'stroke-width': i === TOTAL_FRETS ? 1.5 : 1
-        }));
-      }
-
-      // Position markers (single dot: frets 3, 5, 7, 9, 15 — double: fret 12)
-      const markerGroup = document.getElementById('positionMarkers');
-      function cellCenter(i) {
-        return (fretX(i - 1) + fretX(i)) / 2;
-      }
-      function addDot(cx, cy) {
-        markerGroup.appendChild(createSVGElement('circle', {
-          cx, cy, r: 2.4, fill: 'var(--muted)', opacity: 0.5
-        }));
-      }
-      [3, 5, 7, 9, 15].forEach(i => addDot(cellCenter(i), (NECK_Y0 + NECK_Y1) / 2));
-      [12].forEach(i => {
-        const cx = cellCenter(i);
-        addDot(cx, NECK_Y0 + 7);
-        addDot(cx, NECK_Y1 - 7);
-      });
-
-      // Region overlays (clickable) + labels
-      const regionsGroup = document.getElementById('regions');
-      const regionEls = [];
-
-      REGIONS.forEach((region, i) => {
-        // Visual span: from the start of the lowest fret's cell (or the nut
-        // for the open region) through the end of the highest fret's cell.
-        const startX = region.lo === 0 ? NUT_X : fretX(region.lo - 1);
-        const endX = fretX(region.hi);
-
-        const g = createSVGElement('g', { class: 'region-segment' });
-        g.appendChild(createSVGElement('rect', {
-          class: 'region-fill', x: startX, y: NECK_Y0,
-          width: endX - startX, height: NECK_Y1 - NECK_Y0
-        }));
-
-        const label = createSVGElement('text', { x: (startX + endX) / 2, y: NECK_Y1 + 14 });
-        label.textContent = region.label;
-        g.appendChild(label);
-
-        g.addEventListener('click', () => selectRegion(i));
-        regionsGroup.appendChild(g);
-        regionEls.push(g);
-      });
-
-      function paintRegions() {
-        regionEls.forEach((g, i) => {
-          g.classList.toggle('selected', REGIONS[i] === selectedRegion);
-        });
-      }
-
-      function selectRegion(i) {
-        selectedRegion = REGIONS[i];
-        paintRegions();
-        document.getElementById('regionReadout').textContent = selectedRegion.label + ' fret';
+    buildRegionPicker({
+      onSelect: (region) => {
+        selectedRegion = region;
+        paintRegionPicker(selectedRegion);
         generate();
       }
-
-      // Default: Open – 3rd locked in
-      paintRegions();
-    })();
+    });
+    paintRegionPicker(selectedRegion);
 
 
     // ── Scale / chord data ─────────────────────────────────────────────────────────
@@ -597,6 +611,7 @@
     // ── Init ───────────────────────────────────────────────────────────────────────
 
     renderCircle();
+    renderStave(selectedKey, selectedKeyType);
     generate();
   </script>
 </body>
