@@ -83,8 +83,8 @@
     }
 
     /* ── Per-degree arpeggio groups ───────────────────────────────────────────── */
-    /* .shapes-grid, .diagram-card.shape-card, .shape-title, .subtitle,
-       .fretboard-scroll, .chord-name, .chord-numeral, .legend-panel,
+    /* .shapes-grid, .diagram-card.shape-card, .shape-title, .fretboard-scroll,
+       .chord-name, .chord-numeral, .notes-row, .note-badge, .legend-panel,
        .legend-title, .legend, .legend-item, .legend-dot, and .no-chord come
        from theme.css. */
 
@@ -104,8 +104,14 @@
     }
 
     .arpeggio-group-header {
-      text-align: center;
       margin-bottom: 16px;
+    }
+
+    .chord-title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: flex-start;
+      gap: 8px;
     }
 
     /* ── Circle of fifths (key selector) ─────────────────────────────────────── */
@@ -549,15 +555,6 @@
       return finalizeShape(frets, noteInfo, 0);
     }
 
-    // Combines a shape's label ("Position 3", "Open Position", ...) and its
-    // sublabel ("Fret 8", "Open position", ...) into one line, skipping the
-    // sublabel when it would just repeat the label (e.g. the Open Position
-    // fallback, whose sublabel is always literally "Open position" too).
-    function formatPositionText(label, sublabel) {
-      if (sublabel && sublabel.toLowerCase() !== label.toLowerCase()) return `${label} · ${sublabel}`;
-      return label;
-    }
-
     // ── Generate ───────────────────────────────────────────────────────────────────
 
     function generate() {
@@ -606,7 +603,6 @@
         if (bestIdx >= 0) {
           const a = arpeggio.shapes[bestIdx];
           views = {
-            positionText: formatPositionText(a.label, a.sublabel),
             arpeggioShape: a,
             pentatonicShape: pentatonic.shapes[bestIdx],
             diatonicShape: diatonic.shapes[bestIdx],
@@ -616,18 +612,6 @@
         if (!views && region.lo === 0) {
           const windowArpeggio = findWindowScale(arpeggio.chromaticNotes, arpeggio.noteInfo, region.lo, region.hi);
           if (windowArpeggio) {
-            // Not every fallback shape in the Open region actually rings a
-            // string open — some just happen to sit at frets 1-3. And even
-            // when one does, it's not necessarily the low-E string, so
-            // finalizeShape's own anchor/sublabel (which only looks at
-            // string 0) can't be trusted here — recompute both directly
-            // from the shape's actual dots.
-            const frets = windowArpeggio.dots.map(d => d.fret);
-            const hasOpenString = frets.includes(0);
-            const frettedOnly = frets.filter(f => f > 0);
-            const label = hasOpenString ? 'Open Position' : 'Near the Nut';
-            const sublabel = hasOpenString ? 'Open position' : `Fret ${Math.min(...frettedOnly)}`;
-
             // Pentatonic/diatonic have more notes than the arpeggio, so
             // their own window scan should essentially always find
             // something too — the arpeggio's own shape is just a defensive
@@ -636,7 +620,6 @@
             const windowDiatonic = findWindowScale(diatonic.chromaticNotes, diatonic.noteInfo, region.lo, region.hi);
 
             views = {
-              positionText: formatPositionText(label, sublabel),
               arpeggioShape: windowArpeggio,
               pentatonicShape: windowPentatonic || windowArpeggio,
               diatonicShape: windowDiatonic || windowArpeggio,
@@ -657,7 +640,6 @@
           if (closestIdx >= 0) {
             const a = arpeggio.shapes[closestIdx];
             views = {
-              positionText: formatPositionText('Nearest Position', a.sublabel),
               arpeggioShape: a,
               pentatonicShape: pentatonic.shapes[closestIdx],
               diatonicShape: diatonic.shapes[closestIdx],
@@ -669,6 +651,21 @@
         anyFound = true;
 
         const displayName = formatChordName(note, quality);
+
+        // Note-row badges for this degree's own 7-note diatonic scale (the
+        // same notes as the Diatonic card), in the same style as
+        // scales.html's per-scale note badges — colored to match the
+        // fretboard dots (diatonic.noteInfo) and titled with each note's
+        // scale-degree name.
+        const diatonicScaleQuality = quality === 'maj' ? 'maj' : 'min';
+        const diatonicDegreeNames = DIATONIC_INTERVALS[diatonicScaleQuality].map(iv => SEMITONE_DEGREE_NAMES[iv]);
+        const noteBadgesHTML = buildNoteBadgesHTML(
+          diatonic.chromaticNotes.map((chromaticNote, i) => ({
+            name: diatonic.noteInfo[chromaticNote].note,
+            color: diatonic.noteInfo[chromaticNote].color,
+            title: diatonicDegreeNames[i],
+          }))
+        );
 
         const group = document.createElement('div');
         group.className = 'arpeggio-group';
@@ -688,9 +685,11 @@
 
         group.innerHTML = `
           <div class="arpeggio-group-header">
-            <div class="chord-name">${displayName}</div>
-            <div class="chord-numeral">${romans[degree]}</div>
-            <div class="subtitle">${views.positionText}</div>
+            <div class="chord-title-row">
+              <div class="chord-name">${displayName}</div>
+              <div class="chord-numeral">(${romans[degree]})</div>
+            </div>
+            <div class="notes-row">${noteBadgesHTML}</div>
           </div>
           <div class="shapes-grid">${shapesHTML}</div>
         `;

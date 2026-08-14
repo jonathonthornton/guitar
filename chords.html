@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guitar Chord Finder — Three-String Voicings Across the Fretboard</title>
+  <title>Chord Finder — Three-String Voicings Across the Fretboard</title>
   <meta name="description" content="Interactive three-string guitar chord voicing finder. Pick a key on the circle of fifths and a string set to see chord diagrams across the fretboard.">
   <meta name="theme-color" content="#0a0e1a">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%230a0e1a%22/%3E%3Ctext%20x%3D%2250%22%20y%3D%2270%22%20font-family%3D%22Georgia%2Cserif%22%20font-size%3D%2258%22%20font-weight%3D%22bold%22%20fill%3D%22%23e0a940%22%20text-anchor%3D%22middle%22%3EC%3C/text%3E%3C/svg%3E">
@@ -92,63 +92,48 @@
     .type-radios {
       display: flex;
       flex-direction: column;
-      gap: 10px;
     }
 
     .type-radios label {
+      position: relative;
       display: flex;
       align-items: center;
-      gap: 10px;
-      color: var(--cream);
+      padding: 7px 10px;
+      border-left: 3px solid transparent;
+      border-radius: 0 3px 3px 0;
+      color: var(--muted);
       font-family: 'DM Mono', monospace;
       font-size: 0.8rem;
       letter-spacing: normal;
       text-transform: none;
       cursor: pointer;
       user-select: none;
-      transition: color 0.15s ease;
+      transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
     }
 
     .type-radios label:hover {
-      color: var(--amber);
+      color: var(--cream);
+      background: rgba(255, 255, 255, 0.03);
     }
 
     .type-radios input[type="radio"] {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 15px;
-      height: 15px;
-      margin: 0;
-      border: 1px solid var(--border);
-      border-radius: 50%;
-      background: var(--bg);
-      position: relative;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: border-color 0.15s ease;
-    }
-
-    .type-radios input[type="radio"]::after {
-      content: '';
       position: absolute;
-      inset: 3px;
-      border-radius: 50%;
-      background: var(--amber);
-      transform: scale(0);
-      transition: transform 0.15s ease;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
     }
 
-    .type-radios input[type="radio"]:checked {
-      border-color: var(--amber);
+    .type-radios label:has(input:checked) {
+      color: var(--amber);
+      border-left-color: var(--amber);
+      background: rgba(224, 169, 64, 0.12);
+      font-weight: 500;
     }
 
-    .type-radios input[type="radio"]:checked::after {
-      transform: scale(1);
-    }
-
-    .type-radios input[type="radio"]:focus-visible {
+    .type-radios label:has(input:focus-visible) {
       outline: 2px solid var(--amber);
-      outline-offset: 2px;
+      outline-offset: -2px;
     }
 
     /* #key-label, #chord-row, .chord-card (base), @keyframes fadeUp,
@@ -309,8 +294,8 @@
     <a href="index.html" class="back-link">&larr; Toolkit Home</a>
 
   <header>
-    <h1>Guitar Chords</h1>
-    <p>Three-string voicings</p>
+    <h1>Chords by String Set</h1>
+    <p>Three-string voicings by string set</p>
   </header>
 
   <div class="controls">
