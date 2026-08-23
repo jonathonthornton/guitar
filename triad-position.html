@@ -456,11 +456,22 @@
 
     // Unlike the original tightest-span search, this doesn't always return a
     // voicing — it returns one only if some octave placement of the chord
-    // tone on each string lands entirely inside [regionLo, regionHi]. Open
-    // strings are always allowed (a hand anchored in a higher region can
-    // still let a string ring open), but at least one note must actually sit
-    // inside the region itself — otherwise an all-open voicing would "belong"
-    // to every region, which defeats the purpose of picking one.
+    // tone on each string lands inside [regionLo, regionHi], or within
+    // MAX_FRET_OVERFLOW frets of it. That tolerance matters because the
+    // regions are an arbitrary chop of the neck into fixed 4-fret windows,
+    // and plenty of real voicings straddle a window boundary — e.g. the
+    // 1st-inversion G triad on G-B-e sits at frets 4-3-3, split right across
+    // the Open-3rd/4th-7th line, so no window ever contains it exactly.
+    // Every note must be genuinely fretted within (or just outside) the
+    // region — no open-string exception. An open string always draws just
+    // above the nut, which only makes visual sense in a diagram that
+    // actually shows a nut (i.e. the Open region, where fret 0 already
+    // satisfies the bounds check below on its own). Allowing opens to sneak
+    // into a shifted, no-nut diagram elsewhere left them floating
+    // disconnected from the real (fretted) notes, making the whole voicing
+    // look mispositioned.
+    const MAX_FRET_OVERFLOW = 1;
+
     function findTriadVoicingInRegion(rootNote, quality, stringSet, inversion, regionLo, regionHi) {
       const ri = noteIndex(rootNote);
       const intervals = TRIAD_INTERVALS[quality];
@@ -484,38 +495,36 @@
       const frets = fretsFromOpenNotes(orderedNotes, set.openNotes);
 
       // Each string's note can be played at its raw fret or an octave higher
-      // (0–11 or 12–23). Try every combination and keep whichever fits the
-      // region with the tightest span, preferring the lowest position on ties.
+      // (0–11 or 12–23). Try every combination and keep whichever sits
+      // closest to the region — zero overflow (fully inside) wins whenever
+      // that's achievable, exactly like the old hard containment check;
+      // ties break on tightest span, then lowest position.
       let bestFrets = null;
+      let bestOverflow = Infinity;
       let bestSpan = Infinity;
       let bestMin = Infinity;
 
       for (let mask = 0; mask < 8; mask++) {
         const adjusted = frets.map((f, i) => (mask & (1 << i)) ? f + 12 : f);
 
-        // Every note must be genuinely fretted within the region — no open-
-        // string exception. An open string always draws just above the nut,
-        // which only makes visual sense in a diagram that actually shows a
-        // nut (i.e. the Open region, where fret 0 already satisfies the
-        // bounds check below on its own). Allowing opens to sneak into a
-        // shifted, no-nut diagram elsewhere left them floating disconnected
-        // from the real (fretted) notes, making the whole voicing look
-        // mispositioned.
-        const fits = adjusted.every(f => f >= regionLo && f <= regionHi);
-        if (!fits) continue;
+        const overflow = Math.max(...adjusted.map(f =>
+          Math.max(0, regionLo - f) + Math.max(0, f - regionHi)));
 
         const nonZero = adjusted.filter(f => f > 0);
         const span = nonZero.length ? Math.max(...nonZero) - Math.min(...nonZero) : 0;
         const minF = nonZero.length ? Math.min(...nonZero) : 0;
 
-        if (span < bestSpan || (span === bestSpan && minF < bestMin)) {
+        if (overflow < bestOverflow ||
+            (overflow === bestOverflow && span < bestSpan) ||
+            (overflow === bestOverflow && span === bestSpan && minF < bestMin)) {
           bestFrets = adjusted;
+          bestOverflow = overflow;
           bestSpan = span;
           bestMin = minF;
         }
       }
 
-      if (!bestFrets) return null;
+      if (!bestFrets || bestOverflow > MAX_FRET_OVERFLOW) return null;
 
       return {
         frets: bestFrets,
