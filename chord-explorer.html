@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chord Explorer — Chords by String Set or Fretboard Region</title>
+  <meta name="description" content="Interactive guitar chord voicing finder. Pick a key on the circle of fifths and a chord type, then restrict the search by string set or by fretboard region.">
+  <meta name="theme-color" content="#0a0e1a">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0e1a'/%3E%3Cline x1='9' y1='6' x2='9' y2='26' stroke='%234a5d85' stroke-width='1.5'/%3E%3Cline x1='16' y1='6' x2='16' y2='26' stroke='%234a5d85' stroke-width='1.5'/%3E%3Cline x1='23' y1='6' x2='23' y2='26' stroke='%234a5d85' stroke-width='1.5'/%3E%3Cline x1='9' y1='8' x2='23' y2='8' stroke='%23223050' stroke-width='1.5'/%3E%3Cline x1='9' y1='16' x2='23' y2='16' stroke='%23223050' stroke-width='1.5'/%3E%3Cline x1='9' y1='24' x2='23' y2='24' stroke='%23223050' stroke-width='1.5'/%3E%3Ccircle cx='9' cy='12' r='2.6' fill='%23e0a940'/%3E%3Ccircle cx='16' cy='20' r='2.6' fill='%23e0a940'/%3E%3Ccircle cx='23' cy='8' r='2.6' fill='%23e0a940'/%3E%3C/svg%3E">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    html {
+      zoom: 1.1;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      background-image:
+        radial-gradient(ellipse at 20% 10%, rgba(224, 169, 64, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 90%, rgba(166, 122, 46, 0.06) 0%, transparent 50%);
+    }
+
+    .controls {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 28px 32px;
+      border-radius: 4px;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .control-group.control-key {
+      flex: 0 1 280px;
+    }
+
+    .control-group.control-mode {
+      flex: 0 1 160px;
+    }
+
+    .control-group.control-restrict {
+      flex: 0 1 300px;
+    }
+
+    .control-group.control-key label,
+    .control-group.control-mode label,
+    .control-group.control-restrict label {
+      text-align: center;
+    }
+
+    select {
+      background: var(--bg);
+      color: var(--cream);
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      border-radius: 2px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 30px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .type-radios {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .type-radios label {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 7px 10px;
+      border-left: 3px solid transparent;
+      border-radius: 0 3px 3px 0;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: normal;
+      text-transform: none;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .type-radios label:hover {
+      color: var(--cream);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .type-radios input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .type-radios label:has(input:checked) {
+      color: var(--amber);
+      border-left-color: var(--amber);
+      background: rgba(224, 169, 64, 0.12);
+      font-weight: 500;
+    }
+
+    .type-radios label:has(input:focus-visible) {
+      outline: 2px solid var(--amber);
+      outline-offset: -2px;
+    }
+
+    #mode-label {
+      text-align: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 40px;
+    }
+
+    .chord-inversion {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.12em;
+      color: #4a5d85;
+      text-transform: uppercase;
+    }
+
+    /* Wide enough that four inversion-item diagrams (region mode) sit on one
+       row instead of wrapping; still comfortably fits the three diagrams
+       shown in string-set mode. */
+    .chord-card {
+      max-width: 500px;
+    }
+
+    .inversion-row {
+      flex-wrap: wrap;
+    }
+
+    .legend {
+      margin-top: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 20px 28px;
+      border-radius: 4px;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .legend h3 {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    /* Fixed gold rather than var(--amber): these are fretboard note colors
+       (must match drawTriadDiagram's roleColors in lib/triads.js exactly),
+       not the site's UI accent — left unchanged by the theme. */
+    .legend-dot.root { background: #c9a84c; }
+    .legend-dot.third { background: #6a9fb5; }
+    .legend-dot.fifth { background: #8b5e3c; }
+    .legend-dot.seventh { background: #7b68a6; }
+    .legend-dot.sus { background: #6ab57a; }
+
+    /* ── Circle of fifths (key + mode selector) ──────────────────────────────── */
+
+    .circle-container {
+      display: flex;
+      justify-content: center;
+    }
+
+    #circle-of-fifths {
+      width: 100%;
+      max-width: 280px;
+      height: auto;
+    }
+
+    /* ── String set picker (fretboard) ───────────────────────────────────────── */
+
+    .string-picker {
+      --fb-bg: #17110d;
+      --fb-rosewood-dark: #241611;
+      --fb-rosewood-mid: #3a2418;
+      --fb-rosewood-light: #4f3320;
+      --fb-fret: #c7bfae;
+      --fb-nut: #ece3d3;
+      --fb-cream-dim: #a89882;
+      --fb-gold: #cba05e;
+      --fb-accent: #e0a940;
+      --fb-tuner: #cfd3d6;
+      --fb-tuner-dark: #8e9296;
+      --fb-wood-btn: #b98450;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .string-picker .board-wrap {
+      position: relative;
+      margin: 0 auto;
+      max-width: 220px;
+    }
+
+    .string-picker svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .string-picker .readout {
+      margin-top: 2px;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 8px;
+      min-height: 20px;
+    }
+
+    .string-picker .readout .value {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.95rem;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      transition: opacity 0.15s ease;
+    }
+
+    .string-picker .string-name {
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      fill: var(--fb-cream-dim);
+      text-anchor: middle;
+    }
+
+    .string-picker .string-name.hot {
+      fill: var(--fb-accent);
+    }
+
+    /* ── Fret region picker ──────────────────────────────────────────────────── */
+
+    .region-picker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .region-picker .neck-wrap {
+      position: relative;
+      max-width: 300px;
+      width: 100%;
+    }
+
+    .region-picker svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .region-segment {
+      cursor: pointer;
+    }
+
+    .region-segment rect.region-fill {
+      fill: transparent;
+      stroke: transparent;
+      transition: fill 0.15s ease, stroke 0.15s ease;
+    }
+
+    .region-segment:hover rect.region-fill {
+      fill: rgba(224, 169, 64, 0.22);
+      stroke: #e0a940;
+      stroke-width: 1.5;
+    }
+
+    .region-segment.selected rect.region-fill {
+      fill: rgba(224, 169, 64, 0.38);
+      stroke: #e0a940;
+      stroke-width: 1.25;
+    }
+
+    .region-segment text {
+      fill: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      text-anchor: middle;
+      pointer-events: none;
+      transition: fill 0.15s ease;
+    }
+
+    .region-segment.selected text {
+      fill: var(--amber);
+    }
+
+    .region-picker .readout {
+      margin-top: 8px;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 8px;
+      min-height: 20px;
+    }
+
+    .region-picker .readout .value {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.95rem;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+    }
+  </style>
+</head>
+
+<body>
+  <a href="index.html" class="back-link">&larr; Toolkit Home</a>
+
+  <header>
+    <h1>Chord Explorer</h1>
+    <p>Chords restricted by string set or fretboard region</p>
+  </header>
+
+  <div class="controls">
+    <div class="control-group control-key">
+      <label>Key</label>
+      <div class="circle-container">
+        <svg id="circle-of-fifths" width="400" height="400" viewBox="0 0 400 400"></svg>
+      </div>
+    </div>
+
+    <div class="control-group control-mode">
+      <label>Restrict By</label>
+      <div class="type-radios" id="mode-radios">
+        <label><input type="radio" name="restrict-mode" value="stringset" checked> String Set</label>
+        <label><input type="radio" name="restrict-mode" value="region"> Fretboard Region</label>
+      </div>
+    </div>
+
+    <div class="control-group control-restrict">
+      <label id="restrict-widget-label">String Set</label>
+
+      <div class="string-picker" id="stringset-control">
+        <div class="board-wrap">
+          <svg id="board" viewBox="0 0 468 560" xmlns="http://www.w3.org/2000/svg">
+
+            <!-- ===== headstock ===== -->
+            <g id="headstock">
+              <path id="headstockShape"
+                    d="M 151.2 46
+                       Q 151.2 30 166.5 30
+                       L 301.5 30
+                       Q 316.8 30 316.8 46
+                       L 309.6 280
+                       Q 307.8 305 288 310
+                       L 180 310
+                       Q 160.2 305 158.4 280
+                       Z"
+                    fill="var(--fb-rosewood-mid)" stroke="var(--fb-rosewood-dark)" stroke-width="2"/>
+              <!-- subtle grain -->
+              <g id="grain" opacity="0.35" stroke="var(--fb-rosewood-light)" stroke-width="1"></g>
+
+              <!-- lettering (positioned manually in JS — see renderHeadstockLogo) -->
+              <path id="logoArc" d="M 163 84 Q 234 50 305 84" fill="none"/>
+              <g id="logoText" font-family="Snell Roundhand, 'Brush Script MT', cursive, Georgia" fill="var(--fb-gold)"></g>
+              <text x="234" y="104" text-anchor="middle" font-family="Georgia, serif" font-size="11"
+                    letter-spacing="2.5" fill="var(--fb-gold)">EST. 1966</text>
+
+              <!-- tuners -->
+              <g id="tuners"></g>
+            </g>
+
+            <!-- ===== nut ===== -->
+            <rect x="172" y="310" width="124" height="10" fill="var(--fb-nut)"/>
+
+            <!-- ===== fanned strings from tuner posts to nut ===== -->
+            <g id="fanStrings"></g>
+
+            <!-- ===== fretboard ===== -->
+            <g id="fretboard">
+              <rect x="172" y="320" width="124" height="200" fill="var(--fb-rosewood-mid)"/>
+              <g id="frets"></g>
+            </g>
+
+            <!-- ===== hover band ===== -->
+            <rect id="hoverBand" x="0" y="0" width="0" height="0" fill="var(--fb-accent)" opacity="0" rx="4"/>
+
+            <!-- ===== strings on the board ===== -->
+            <g id="strings"></g>
+
+            <!-- ===== string labels (below board) ===== -->
+            <g id="labels"></g>
+
+            <!-- ===== interaction catcher ===== -->
+            <rect id="catcher" x="172" y="315" width="124" height="220" fill="transparent" style="cursor:pointer"/>
+
+          </svg>
+        </div>
+        <div class="readout">
+          <span class="value" id="readoutValue">G B e</span>
+        </div>
+      </div>
+
+      <div class="region-picker" id="region-control" style="display:none">
+        <div class="neck-wrap">
+          <svg id="neck" viewBox="13 0 287 90" xmlns="http://www.w3.org/2000/svg">
+
+            <!-- ===== neck base ===== -->
+            <rect x="20" y="23" width="260" height="34" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+
+            <!-- ===== fret ticks ===== -->
+            <g id="fretTicks"></g>
+
+            <!-- ===== position markers ===== -->
+            <g id="positionMarkers"></g>
+
+            <!-- ===== nut ===== -->
+            <rect x="15" y="18" width="5" height="44" fill="var(--cream)"/>
+
+            <!-- ===== region overlays (clickable) ===== -->
+            <g id="regions"></g>
+
+          </svg>
+        </div>
+        <div class="readout">
+          <span class="value" id="regionReadout">Open – 3rd fret</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Chord Type</label>
+      <div class="type-radios" id="type-radios">
+        <label><input type="radio" name="chord-type" value="triad" checked> Triads</label>
+        <label><input type="radio" name="chord-type" value="dom7"> Dominant 7th</label>
+        <label><input type="radio" name="chord-type" value="maj7"> Major 7th</label>
+        <label><input type="radio" name="chord-type" value="sus2"> Sus 2</label>
+        <label><input type="radio" name="chord-type" value="sus4"> Sus 4</label>
+        <label><input type="radio" name="chord-type" value="aug"> Augmented</label>
+        <label><input type="radio" name="chord-type" value="dim"> Diminished</label>
+      </div>
+    </div>
+  </div>
+
+  <div id="key-label"></div>
+  <div id="mode-label"></div>
+  <div id="chord-row"></div>
+
+  <div class="legend">
+    <h3>Legend</h3>
+    <div class="legend-item">
+      <div class="legend-dot root"></div>
+      <span>Root (R)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot third"></div>
+      <span>Third (3)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot fifth"></div>
+      <span>Fifth (5)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot seventh"></div>
+      <span>Seventh (7)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot sus"></div>
+      <span>Suspended (2nd / 4th)</span>
+    </div>
+  </div>
+
+  <footer>Designed by Jon Thornton. Implemented by Claude.</footer>
+
+  <script src="lib/svg-utils.js"></script>
+  <script src="lib/theory.js"></script>
+  <script src="lib/triads.js"></script>
+  <script src="lib/circle-of-fifths.js"></script>
+  <script src="lib/region-picker.js"></script>
+  <script>
+    // ── Note helpers ──────────────────────────────────────────────────────────────
+    // NOTES, LETTERS, LETTER_SEMITONE, and noteIndex() come from theory.js.
+    // spellScale and chooseBestRoot come from lib/triads.js.
+
+    // ── Headstock logo (curved text) ─────────────────────────────────────────────
+    //
+    // Positioning each letter manually with plain <text> + rotate() (rather
+    // than a native <textPath> with textLength/lengthAdjust) sidesteps
+    // inconsistent per-glyph rendering across SVG engines.
+
+    function renderHeadstockLogo() {
+      const group = document.getElementById('logoText');
+      const text = 'Jon Thornton';
+      const targetWidth = 120; // matches the previous textLength
+      const baseFontSize = 17;
+
+      // Quadratic bezier control points, matching <path id="logoArc">.
+      const P0 = { x: 163, y: 84 };
+      const P1 = { x: 234, y: 50 };
+      const P2 = { x: 305, y: 84 };
+
+      function bezierPoint(t) {
+        const mt = 1 - t;
+        return {
+          x: mt * mt * P0.x + 2 * mt * t * P1.x + t * t * P2.x,
+          y: mt * mt * P0.y + 2 * mt * t * P1.y + t * t * P2.y
+        };
+      }
+      function bezierTangent(t) {
+        return {
+          x: 2 * (1 - t) * (P1.x - P0.x) + 2 * t * (P2.x - P1.x),
+          y: 2 * (1 - t) * (P1.y - P0.y) + 2 * t * (P2.y - P1.y)
+        };
+      }
+
+      // Build an arc-length lookup table by sampling the curve.
+      const STEPS = 300;
+      const samples = [{ t: 0, s: 0, pt: bezierPoint(0) }];
+      let cumulative = 0;
+      for (let i = 1; i <= STEPS; i++) {
+        const t = i / STEPS;
+        const pt = bezierPoint(t);
+        const prev = samples[i - 1].pt;
+        cumulative += Math.hypot(pt.x - prev.x, pt.y - prev.y);
+        samples.push({ t, s: cumulative, pt });
+      }
+      const totalLength = cumulative;
+
+      function pointAtArcLength(s) {
+        s = Math.max(0, Math.min(totalLength, s));
+        let lo = 0, hi = samples.length - 1;
+        while (lo < hi - 1) {
+          const mid = (lo + hi) >> 1;
+          if (samples[mid].s < s) lo = mid; else hi = mid;
+        }
+        const a = samples[lo], b = samples[hi];
+        const frac = b.s === a.s ? 0 : (s - a.s) / (b.s - a.s);
+        const t = a.t + (b.t - a.t) * frac;
+        return { pt: bezierPoint(t), tangent: bezierTangent(t) };
+      }
+
+      // Measure each character's natural width using a temporary, invisible
+      // text element so metrics match this exact font stack precisely.
+      const ns = 'http://www.w3.org/2000/svg';
+      const measurer = document.createElementNS(ns, 'text');
+      measurer.setAttribute('font-family', group.getAttribute('font-family'));
+      measurer.setAttribute('font-size', baseFontSize);
+      measurer.style.visibility = 'hidden';
+      group.appendChild(measurer);
+
+      const chars = text.split('');
+      const widths = chars.map(ch => {
+        measurer.textContent = ch;
+        return measurer.getComputedTextLength();
+      });
+      group.removeChild(measurer);
+
+      const naturalTotal = widths.reduce((a, b) => a + b, 0);
+      const scale = naturalTotal > 0 ? targetWidth / naturalTotal : 1;
+      const fontSize = baseFontSize * scale;
+      const scaledWidths = widths.map(w => w * scale);
+
+      const midS = totalLength / 2;
+      let cursorS = midS - targetWidth / 2;
+
+      chars.forEach((ch, i) => {
+        const centerS = cursorS + scaledWidths[i] / 2;
+        cursorS += scaledWidths[i];
+        if (ch === ' ') return;
+
+        const { pt, tangent } = pointAtArcLength(centerS);
+        const angle = Math.atan2(tangent.y, tangent.x) * 180 / Math.PI;
+
+        const glyph = document.createElementNS(ns, 'text');
+        glyph.setAttribute('x', pt.x);
+        glyph.setAttribute('y', pt.y);
+        glyph.setAttribute('text-anchor', 'middle');
+        glyph.setAttribute('font-size', fontSize);
+        glyph.setAttribute('transform', `rotate(${angle} ${pt.x} ${pt.y})`);
+        glyph.textContent = ch;
+        group.appendChild(glyph);
+      });
+    }
+
+    renderHeadstockLogo();
+
+    // ── Circle of Fifths (Key + Mode selector) ───────────────────────────────────
+    // KEYSTR_MAP comes from lib/triads.js.
+    // MAJOR_KEYS, MINOR_KEYS, and renderCircleOfFifths come from circle-of-fifths.js.
+    // getPosition, createArcPath, and createSVGElement come from svg-utils.js.
+
+    let selectedKey = 'C';
+    let selectedKeyType = 'major';
+
+    function renderCircle() {
+      renderCircleOfFifths({
+        selectedKey,
+        selectedKeyType,
+        onSelect: (name, type) => selectKey(name, type),
+      });
+    }
+
+    function selectKey(keyName, keyType) {
+      selectedKey = keyName;
+      selectedKeyType = keyType;
+      renderCircle();
+      generate();
+    }
+
+    // ── Restrict-by mode toggle ───────────────────────────────────────────────────
+
+    let restrictMode = 'stringset';
+
+    document.querySelectorAll('input[name="restrict-mode"]').forEach(input => {
+      input.addEventListener('change', (e) => {
+        restrictMode = e.target.value;
+        document.getElementById('stringset-control').style.display = restrictMode === 'stringset' ? '' : 'none';
+        document.getElementById('region-control').style.display = restrictMode === 'region' ? '' : 'none';
+        document.getElementById('restrict-widget-label').textContent =
+          restrictMode === 'stringset' ? 'String Set' : 'Fretboard Region';
+        generate();
+      });
+    });
+
+    // ── String set picker (fretboard) ────────────────────────────────────────────
+
+    let selectedStringSet = 'GBe';
+
+    (function () {
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.getElementById('board');
+
+      const STRING_NAMES = ['E', 'A', 'D', 'G', 'B', 'e'];
+      const STRING_SET_KEYS = ['EAD', 'ADG', 'DGB', 'GBe'];
+      const n = STRING_NAMES.length;
+      const BOARD_X0 = 181, BOARD_X1 = 287;
+      const NUT_Y = 320, BOARD_BOTTOM = 520;
+      const xs = STRING_NAMES.map((_, i) => BOARD_X0 + (BOARD_X1 - BOARD_X0) * (i / (n - 1)));
+      const thickness = [3.2, 2.6, 2.1, 1.7, 1.3, 0.9];
+
+      const HEAD_TOP_Y = 30, HEAD_TAPER_END_Y = 310;
+      const EDGE_TOP_L = 151.2, EDGE_TOP_R = 316.8;
+      const EDGE_BOTTOM_L = 158.4, EDGE_BOTTOM_R = 309.6;
+      function edgeLeft(y) {
+        const t = (y - HEAD_TOP_Y) / (HEAD_TAPER_END_Y - HEAD_TOP_Y);
+        return EDGE_TOP_L + (EDGE_BOTTOM_L - EDGE_TOP_L) * t;
+      }
+      function edgeRight(y) {
+        const t = (y - HEAD_TOP_Y) / (HEAD_TAPER_END_Y - HEAD_TOP_Y);
+        return EDGE_TOP_R + (EDGE_BOTTOM_R - EDGE_TOP_R) * t;
+      }
+
+      const grain = document.getElementById('grain');
+      for (let i = 0; i < 7; i++) {
+        const x = 160 + i * 19.8 + (Math.random() * 4 - 2);
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', x); line.setAttribute('y1', 36);
+        line.setAttribute('x2', x + (Math.random() * 7 - 3.5)); line.setAttribute('y2', 304);
+        grain.appendChild(line);
+      }
+
+      const tunerGroup = document.getElementById('tuners');
+      const ROW_Y = [95, 165, 235];
+      const postPositions = {};
+
+      function makeTuner(edgeX, y, side) {
+        const g = document.createElementNS(NS, 'g');
+        const postX = edgeX + side * -18;
+        const btnX = edgeX + side * 12.6;
+
+        const rod = document.createElementNS(NS, 'line');
+        rod.setAttribute('x1', edgeX); rod.setAttribute('y1', y);
+        rod.setAttribute('x2', btnX); rod.setAttribute('y2', y);
+        rod.setAttribute('stroke', 'var(--fb-tuner-dark)');
+        rod.setAttribute('stroke-width', 2.7);
+        g.appendChild(rod);
+
+        const btn = document.createElementNS(NS, 'ellipse');
+        btn.setAttribute('cx', btnX);
+        btn.setAttribute('cy', y);
+        btn.setAttribute('rx', 14.5);
+        btn.setAttribute('ry', 10.5);
+        btn.setAttribute('fill', 'var(--fb-wood-btn)');
+        btn.setAttribute('stroke', 'var(--fb-tuner-dark)');
+        btn.setAttribute('stroke-width', 1);
+        g.appendChild(btn);
+
+        const post = document.createElementNS(NS, 'circle');
+        post.setAttribute('cx', postX); post.setAttribute('cy', y);
+        post.setAttribute('r', 5.4);
+        post.setAttribute('fill', 'var(--fb-tuner)');
+        post.setAttribute('stroke', 'var(--fb-tuner-dark)');
+        post.setAttribute('stroke-width', 1.2);
+        g.appendChild(post);
+
+        const cap = document.createElementNS(NS, 'circle');
+        cap.setAttribute('cx', postX); cap.setAttribute('cy', y);
+        cap.setAttribute('r', 2.7);
+        cap.setAttribute('fill', 'var(--fb-tuner-dark)');
+        g.appendChild(cap);
+
+        return { el: g, postX, y };
+      }
+
+      const leftOrder = [{ row: 0, str: 2 }, { row: 1, str: 1 }, { row: 2, str: 0 }];
+      leftOrder.forEach(({ row, str }) => {
+        const y = ROW_Y[row];
+        const t = makeTuner(edgeLeft(y), y, -1);
+        tunerGroup.appendChild(t.el);
+        postPositions[str] = { x: t.postX, y: t.y };
+      });
+
+      const rightOrder = [{ row: 0, str: 3 }, { row: 1, str: 4 }, { row: 2, str: 5 }];
+      rightOrder.forEach(({ row, str }) => {
+        const y = ROW_Y[row];
+        const t = makeTuner(edgeRight(y), y, 1);
+        tunerGroup.appendChild(t.el);
+        postPositions[str] = { x: t.postX, y: t.y };
+      });
+
+      const fanGroup = document.getElementById('fanStrings');
+      STRING_NAMES.forEach((_, i) => {
+        const p = postPositions[i];
+        const nutX = xs[i];
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', p.x); line.setAttribute('y1', p.y);
+        line.setAttribute('x2', nutX); line.setAttribute('y2', NUT_Y);
+        line.setAttribute('stroke', '#cabfa9');
+        line.setAttribute('stroke-width', thickness[i]);
+        line.setAttribute('stroke-linecap', 'round');
+        fanGroup.appendChild(line);
+      });
+
+      const fretsGroup = document.getElementById('frets');
+      const FRETS = 2;
+      const fretH = (BOARD_BOTTOM - NUT_Y) / FRETS;
+      for (let i = 1; i <= FRETS; i++) {
+        const y = NUT_Y + i * fretH;
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', 170.2); line.setAttribute('y1', y);
+        line.setAttribute('x2', 297.8); line.setAttribute('y2', y);
+        line.setAttribute('stroke', 'var(--fb-fret)');
+        line.setAttribute('stroke-width', '4');
+        fretsGroup.appendChild(line);
+      }
+
+      const stringsGroup = document.getElementById('strings');
+      const stringEls = [];
+      xs.forEach((x, i) => {
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', x);
+        line.setAttribute('y1', NUT_Y);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', BOARD_BOTTOM);
+        line.setAttribute('stroke', '#cabfa9');
+        line.setAttribute('stroke-width', thickness[i]);
+        line.setAttribute('stroke-linecap', 'round');
+        stringsGroup.appendChild(line);
+        stringEls.push(line);
+      });
+
+      const labelsGroup = document.getElementById('labels');
+      const labelEls = [];
+      xs.forEach((x, i) => {
+        const t = document.createElementNS(NS, 'text');
+        t.setAttribute('x', x);
+        t.setAttribute('y', BOARD_BOTTOM + 26);
+        t.setAttribute('class', 'string-name');
+        t.textContent = STRING_NAMES[i];
+        labelsGroup.appendChild(t);
+        labelEls.push(t);
+      });
+
+      const GROUPS = [[0, 1, 2], [1, 2, 3], [2, 3, 4], [3, 4, 5]];
+      const centers = GROUPS.map(g => xs[g[1]]);
+
+      const hoverBand = document.getElementById('hoverBand');
+      const catcher = document.getElementById('catcher');
+      const readout = document.getElementById('readoutValue');
+
+      let lockedGroup = 3; // default: G B e
+
+      function groupLabel(gi) {
+        return GROUPS[gi].map(idx => STRING_NAMES[idx]).join(' ');
+      }
+
+      function nearestGroup(x) {
+        let best = 0, bestD = Infinity;
+        centers.forEach((c, i) => {
+          const d = Math.abs(x - c);
+          if (d < bestD) { bestD = d; best = i; }
+        });
+        return best;
+      }
+
+      function paint(gi, isLock) {
+        const idxs = GROUPS[gi];
+        const leftX = xs[idxs[0]];
+        const rightX = xs[idxs[idxs.length - 1]];
+        const pad = 4;
+        hoverBand.setAttribute('x', leftX - pad);
+        hoverBand.setAttribute('y', NUT_Y - 4);
+        hoverBand.setAttribute('width', (rightX - leftX) + pad * 2);
+        hoverBand.setAttribute('height', (BOARD_BOTTOM - NUT_Y) + 8);
+        hoverBand.setAttribute('opacity', isLock ? 0.24 : 0.12);
+
+        stringEls.forEach((el, i) => {
+          const active = idxs.includes(i);
+          el.setAttribute('stroke', active ? 'var(--fb-accent)' : '#cabfa9');
+          el.setAttribute('stroke-width', active ? thickness[i] + (isLock ? 1.6 : 1) : thickness[i]);
+        });
+        labelEls.forEach((el, i) => {
+          el.setAttribute('class', idxs.includes(i) ? 'string-name hot' : 'string-name');
+        });
+      }
+
+      function clearPaint() {
+        hoverBand.setAttribute('opacity', 0);
+        stringEls.forEach((el, i) => {
+          el.setAttribute('stroke', '#cabfa9');
+          el.setAttribute('stroke-width', thickness[i]);
+        });
+        labelEls.forEach(el => el.setAttribute('class', 'string-name'));
+      }
+
+      function localPoint(e) {
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX; pt.y = e.clientY;
+        return pt.matrixTransform(svg.getScreenCTM().inverse());
+      }
+
+      catcher.addEventListener('mousemove', (e) => {
+        const gi = nearestGroup(localPoint(e).x);
+        paint(gi, lockedGroup === gi);
+      });
+
+      catcher.addEventListener('mouseleave', () => {
+        if (lockedGroup === null) {
+          clearPaint();
+        } else {
+          paint(lockedGroup, true);
+        }
+      });
+
+      catcher.addEventListener('click', (e) => {
+        const gi = nearestGroup(localPoint(e).x);
+        lockedGroup = gi;
+        paint(gi, true);
+        readout.textContent = groupLabel(gi);
+        readout.classList.remove('empty');
+        selectedStringSet = STRING_SET_KEYS[gi];
+        generate();
+      });
+
+      // Default: G B e locked in
+      paint(3, true);
+    })();
+
+    // ── Fret region picker ───────────────────────────────────────────────────────
+    // REGIONS, buildRegionPicker, and paintRegionPicker come from
+    // lib/region-picker.js.
+
+    let selectedRegion = REGIONS[0];
+
+    buildRegionPicker({
+      onSelect: (region) => {
+        selectedRegion = region;
+        paintRegionPicker(selectedRegion);
+        generate();
+      }
+    });
+    paintRegionPicker(selectedRegion);
+
+    // ── Scale / chord data ─────────────────────────────────────────────────────────
+    // MAJOR_QUALITIES/MINOR_QUALITIES, ROMAN_MAJOR/ROMAN_MINOR, getKeyRoot,
+    // getScaleChords, STRING_SETS, and TRIAD_INTERVALS come from lib/triads.js.
+
+    // Shell voicings for 7th chords (R-3-7, omitting 5th)
+    const MAJ7_INTERVALS = {
+      maj: [0, 4, 11],  // root, major 3rd, major 7th (maj7)
+      min: [0, 3, 10],  // root, minor 3rd, minor 7th (min7)
+      dim: [0, 3, 9]    // root, minor 3rd, dim 7th (dim7 / half-dim uses m7)
+    };
+
+    const DOM7_INTERVALS = {
+      maj: [0, 4, 10],  // root, major 3rd, minor 7th (dom7)
+      min: [0, 3, 10],  // root, minor 3rd, minor 7th (min7)
+      dim: [0, 3, 9]    // root, minor 3rd, diminished 7th (dim7)
+    };
+
+    // Sus chords replace the 3rd with a 2nd or 4th (quality is irrelevant)
+    const SUS2_INTERVALS  = { maj: [0, 2, 7], min: [0, 2, 7], dim: [0, 2, 7] };
+    const SUS4_INTERVALS  = { maj: [0, 5, 7], min: [0, 5, 7], dim: [0, 5, 7] };
+
+    // spellChordTone comes from lib/triads.js.
+
+    // Chosen once here so both voicing search strategies below (unconstrained
+    // string-set search and region-constrained search) dispatch on chord type
+    // identically instead of duplicating this table.
+    function getChordIntervals(chordType, quality) {
+      if (chordType === 'maj7') {
+        return { intervals: MAJ7_INTERVALS[quality], roleNames: ['root', 'third', 'seventh'], letterOffsets: [0, 2, 6] };
+      } else if (chordType === 'dom7') {
+        return { intervals: DOM7_INTERVALS[quality], roleNames: ['root', 'third', 'seventh'], letterOffsets: [0, 2, 6] };
+      } else if (chordType === 'sus2') {
+        return { intervals: SUS2_INTERVALS[quality], roleNames: ['root', 'sus', 'fifth'], letterOffsets: [0, 1, 4] };
+      } else if (chordType === 'sus4') {
+        return { intervals: SUS4_INTERVALS[quality], roleNames: ['root', 'sus', 'fifth'], letterOffsets: [0, 3, 4] };
+      } else if (chordType === 'dim') {
+        return { intervals: [0, 3, 6], roleNames: ['root', 'third', 'fifth'], letterOffsets: [0, 2, 4] };   // root, minor 3rd, diminished 5th
+      } else if (chordType === 'aug') {
+        return { intervals: [0, 4, 8], roleNames: ['root', 'third', 'fifth'], letterOffsets: [0, 2, 4] };   // root, major 3rd, augmented 5th
+      } else {
+        return { intervals: TRIAD_INTERVALS[quality], roleNames: ['root', 'third', 'fifth'], letterOffsets: [0, 2, 4] };
+      }
+    }
+
+    // ── Calculate triad voicing (unconstrained — single fixed string set) ───────────
+    // Same tightest-span search chords.html uses: every note can be played at
+    // its raw fret or an octave higher, and whichever combination gives the
+    // smallest span wins (lowest position on ties).
+
+    function calculateTriadVoicing(rootNote, quality, stringSet, inversion, chordType) {
+      const ri = noteIndex(rootNote);
+      const { intervals, roleNames, letterOffsets } = getChordIntervals(chordType, quality);
+      const set = STRING_SETS[stringSet];
+
+      const notes = intervals.map(iv => (ri + iv) % 12);
+      const noteNames = intervals.map((iv, idx) =>
+        spellChordTone(rootNote, letterOffsets[idx], (ri + iv) % 12));
+
+      // Reorder based on inversion: Root R-3-5/7, First 3-5/7-R, Second 5/7-R-3
+      // (rotateForInversion comes from lib/triads.js).
+      const orderedNotes = rotateForInversion(notes, inversion);
+      const orderedRoles = rotateForInversion(roleNames, inversion);
+      const orderedNoteNames = rotateForInversion(noteNames, inversion);
+
+      // Calculate fret for each string to produce the required note
+      // (fretsFromOpenNotes comes from lib/triads.js).
+      const frets = fretsFromOpenNotes(orderedNotes, set.openNotes);
+
+      let bestFrets = null;
+      let bestSpan = Infinity;
+      let bestMin = Infinity;
+
+      for (let mask = 0; mask < 8; mask++) {
+        const adjusted = frets.map((f, i) => (mask & (1 << i)) ? f + 12 : f);
+        const adjMin = Math.min(...adjusted);
+        const adjMax = Math.max(...adjusted);
+        const span = adjMax - adjMin;
+
+        if (adjMin < 0 || adjMin > 12) continue; // keep the voicing in a playable position
+
+        if (span < bestSpan || (span === bestSpan && adjMin < bestMin)) {
+          bestFrets = adjusted;
+          bestSpan = span;
+          bestMin = adjMin;
+        }
+      }
+
+      return {
+        frets: bestFrets,
+        stringLabels: set.labels,
+        noteRoles: orderedRoles,
+        noteNames: orderedNoteNames,
+        inversion: inversion,
+        inversionName: inversion === 0 ? 'Root' : inversion === 1 ? '1st Inv' : '2nd Inv'
+      };
+    }
+
+    // ── Find chord voicing within a fret region (any string set) ────────────────────
+    // Same overflow-tolerant search triad-position.html uses, generalized to
+    // any chord type via getChordIntervals rather than always plain triads.
+    // A voicing is accepted only if some octave placement of every chord tone
+    // lands inside [regionLo, regionHi], or within MAX_FRET_OVERFLOW frets of
+    // it — real voicings often straddle a region boundary since the regions
+    // are an arbitrary chop of the neck into fixed 4-fret windows.
+
+    const MAX_FRET_OVERFLOW = 1;
+
+    function findChordVoicingInRegion(rootNote, quality, stringSet, inversion, chordType, regionLo, regionHi) {
+      const ri = noteIndex(rootNote);
+      const { intervals, roleNames, letterOffsets } = getChordIntervals(chordType, quality);
+      const set = STRING_SETS[stringSet];
+
+      const notes = intervals.map(iv => (ri + iv) % 12);
+      const noteNames = intervals.map((iv, idx) =>
+        spellChordTone(rootNote, letterOffsets[idx], (ri + iv) % 12));
+
+      const orderedNotes = rotateForInversion(notes, inversion);
+      const orderedRoles = rotateForInversion(roleNames, inversion);
+      const orderedNoteNames = rotateForInversion(noteNames, inversion);
+
+      const frets = fretsFromOpenNotes(orderedNotes, set.openNotes);
+
+      let bestFrets = null;
+      let bestOverflow = Infinity;
+      let bestSpan = Infinity;
+      let bestMin = Infinity;
+
+      for (let mask = 0; mask < 8; mask++) {
+        const adjusted = frets.map((f, i) => (mask & (1 << i)) ? f + 12 : f);
+
+        const overflow = Math.max(...adjusted.map(f =>
+          Math.max(0, regionLo - f) + Math.max(0, f - regionHi)));
+
+        const nonZero = adjusted.filter(f => f > 0);
+        const span = nonZero.length ? Math.max(...nonZero) - Math.min(...nonZero) : 0;
+        const minF = nonZero.length ? Math.min(...nonZero) : 0;
+
+        if (overflow < bestOverflow ||
+            (overflow === bestOverflow && span < bestSpan) ||
+            (overflow === bestOverflow && span === bestSpan && minF < bestMin)) {
+          bestFrets = adjusted;
+          bestOverflow = overflow;
+          bestSpan = span;
+          bestMin = minF;
+        }
+      }
+
+      if (!bestFrets || bestOverflow > MAX_FRET_OVERFLOW) return null;
+
+      return {
+        frets: bestFrets,
+        stringLabels: set.labels,
+        noteRoles: orderedRoles,
+        noteNames: orderedNoteNames,
+        inversion: inversion,
+        inversionName: inversion === 0 ? 'Root' : inversion === 1 ? '1st Inv' : '2nd Inv'
+      };
+    }
+
+    // drawTriadDiagram and formatChordName come from lib/triads.js.
+
+    // ── Generate ───────────────────────────────────────────────────────────────────
+
+    function isDiatonicSusChord(chordRootPc, chordType, scalePcSet) {
+      const intervals = chordType === 'sus2' ? [0, 2, 7] : [0, 5, 7];
+      return intervals.every(iv => scalePcSet.has((chordRootPc + iv) % 12));
+    }
+
+    const ROMAN_NEUTRAL = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+    const STRING_SET_ORDER = ['EAD', 'ADG', 'DGB', 'GBe'];
+
+    function generate() {
+      const chordType = document.querySelector('input[name="chord-type"]:checked').value;
+
+      const keyStr = KEYSTR_MAP[selectedKey];
+      const mode = selectedKeyType;
+
+      const root = getKeyRoot(keyStr, mode);
+      const scaleChords = getScaleChords(keyStr, mode);
+      // Diminished, augmented, sus2, and sus4 chords don't have distinct
+      // major/minor forms — the same interval shape is used regardless of a
+      // scale degree's natural quality — so upper/lowercase numeral case
+      // would be misleading and the Major/Minor label is omitted from the
+      // title.
+      const isModeInvariantType = chordType === 'dim' || chordType === 'aug' ||
+                                   chordType === 'sus2' || chordType === 'sus4';
+      const romans = isModeInvariantType ? ROMAN_NEUTRAL :
+                     mode === 'major' ? ROMAN_MAJOR : ROMAN_MINOR;
+
+      const typeLabel = chordType === 'maj7'  ? 'Major 7th Chords' :
+                        chordType === 'dom7'  ? 'Dominant 7th Chords' :
+                        chordType === 'sus2'  ? 'Sus 2 Chords' :
+                        chordType === 'sus4'  ? 'Sus 4 Chords' :
+                        chordType === 'dim'   ? 'Diminished Triads' :
+                        chordType === 'aug'   ? 'Augmented Triads' : 'Triads';
+
+      const modeLabel = isModeInvariantType ? '' :
+                        mode === 'major' ? 'Major' : mode === 'minor' ? 'Minor' : '';
+      document.getElementById('key-label').textContent =
+        modeLabel ? `${root} ${modeLabel} — ${typeLabel}` : `${root} — ${typeLabel}`;
+
+      const row = document.getElementById('chord-row');
+      row.innerHTML = '';
+
+      const scaleIntervals = mode === 'major' ? MAJOR_SCALE_INTERVALS : MINOR_SCALE_INTERVALS;
+      const rootPc = noteIndex(root);
+      const scalePcSet = new Set(scaleIntervals.map(iv => (rootPc + iv) % 12));
+      const isSus = chordType === 'sus2' || chordType === 'sus4';
+
+      if (restrictMode === 'stringset') {
+        const stringSet = selectedStringSet;
+        document.getElementById('mode-label').textContent = `${stringSet} strings`;
+
+        scaleChords.forEach((chord, degree) => {
+          const { note, quality } = chord;
+
+          // Skip non-diatonic sus chords entirely
+          if (isSus && !isDiatonicSusChord(noteIndex(note), chordType, scalePcSet)) return;
+
+          const card = document.createElement('div');
+          card.className = 'chord-card';
+          card.style.animationDelay = `${degree * 0.06}s`;
+
+          const displayName = formatChordName(note, quality, chordType);
+
+          const inversionsHTML = [0, 1, 2].map(inv => {
+            const voicing = calculateTriadVoicing(note, quality, stringSet, inv, chordType);
+            return `
+              <div class="inversion-item">
+                <div class="chord-inversion">${voicing.inversionName}</div>
+                ${drawTriadDiagram(voicing)}
+              </div>
+            `;
+          }).join('');
+
+          card.innerHTML = `
+            <div class="chord-name">${displayName}</div>
+            <div class="chord-numeral">${romans[degree]}</div>
+            <div class="inversion-row">${inversionsHTML}</div>
+          `;
+          row.appendChild(card);
+        });
+      } else {
+        const region = selectedRegion;
+        document.getElementById('mode-label').textContent = `Frets ${region.lo}–${region.hi}`;
+
+        let anyFound = false;
+
+        // For every diatonic chord, always show all four string sets, in
+        // string-set order — one fragment each, even when a string set has no
+        // playable voicing in this region (drawTriadDiagram(null) renders that
+        // fragment as an empty "No voicing" placeholder). When a string set
+        // has more than one inversion that fits, keep whichever sits lowest.
+        scaleChords.forEach((chord, degree) => {
+          const { note, quality } = chord;
+
+          if (isSus && !isDiatonicSusChord(noteIndex(note), chordType, scalePcSet)) return;
+
+          const voicingsByStringSet = STRING_SET_ORDER.map(stringSet => {
+            const candidates = [0, 1, 2]
+              .map(inv => findChordVoicingInRegion(note, quality, stringSet, inv, chordType, region.lo, region.hi))
+              .filter(Boolean);
+            if (candidates.length === 0) return null;
+
+            candidates.sort((a, b) => {
+              const aMin = Math.min(...a.frets.filter(f => f > 0), Infinity);
+              const bMin = Math.min(...b.frets.filter(f => f > 0), Infinity);
+              if (aMin !== bMin) return aMin - bMin;
+              return a.inversion - b.inversion;
+            });
+            return candidates[0];
+          });
+
+          if (voicingsByStringSet.every(v => !v)) return;
+          anyFound = true;
+
+          const card = document.createElement('div');
+          card.className = 'chord-card';
+          card.style.animationDelay = `${degree * 0.06}s`;
+
+          const displayName = formatChordName(note, quality, chordType);
+
+          const voicingsHTML = voicingsByStringSet.map(voicing => `
+            <div class="inversion-item">
+              <div class="chord-inversion">${voicing ? voicing.inversionName : ''}</div>
+              ${drawTriadDiagram(voicing)}
+            </div>
+          `).join('');
+
+          card.innerHTML = `
+            <div class="chord-name">${displayName}</div>
+            <div class="chord-numeral">${romans[degree]}</div>
+            <div class="inversion-row">${voicingsHTML}</div>
+          `;
+          row.appendChild(card);
+        });
+
+        if (!anyFound) {
+          row.innerHTML = `<div class="no-chord" style="width:auto;padding:24px 32px;">No ${typeLabel.toLowerCase()} from this key fall within the selected region.</div>`;
+        }
+      }
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────────────────
+
+    document.querySelectorAll('input[name="chord-type"]').forEach(input => {
+      input.addEventListener('change', generate);
+    });
+
+    renderCircle();
+    generate();
+  </script>
+</body>
+
+</html>
