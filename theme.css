@@ -1,9 +1,9 @@
 /* Shared design system for chords.html, modes.html, scales.html, and
-   triad-position.html: color palette, base reset, header/footer chrome, the
+   triads.html: color palette, base reset, header/footer chrome, the
    "back to home" link, the pill-style radio control used by the key/type/mode
    selectors, the diagram/output display shared by modes.html and scales.html,
    and the circle-of-fifths and chord-card widgets shared by chords.html and
-   triad-position.html (scales.html also uses the circle-of-fifths pieces). */
+   triads.html (scales.html also uses the circle-of-fifths pieces). */
 
 :root {
   --bg: #0a0e1a;
@@ -59,7 +59,7 @@ footer {
   padding-top: 24px;
   border-top: 1px solid var(--border);
   /* Only has an effect on pages whose body is a centering flexbox
-     (chords.html, triad-position.html) — without it the footer, as a flex
+     (chords.html, triads.html) — without it the footer, as a flex
      item, would shrink to its text's width and take its border-top divider
      with it. A no-op on every other page. */
   align-self: stretch;
@@ -114,6 +114,7 @@ footer {
   font-size: 13px;
   cursor: pointer;
   transition: all 0.15s ease;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -180,14 +181,6 @@ footer {
 .diagram-card.shape-card {
   padding: 20px;
   margin-bottom: 0;
-}
-
-.diagram-card h2 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px;
-  letter-spacing: 0.08em;
-  color: var(--amber);
-  margin-bottom: 4px;
 }
 
 .shape-title {
@@ -342,11 +335,12 @@ svg.fretboard { display: block; }
 
 .circle-text {
   pointer-events: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 
 /* Two-ring circle-of-fifths hover/selected states — shared by chords.html,
-   scales.html, and triad-position.html. modes.html's single-ring wheel uses
+   scales.html, and triads.html. modes.html's single-ring wheel uses
    its own plain .circle-segment:hover/.selected instead (no .major/.minor
    qualifier, since it only ever renders major-key wedges), so these never
    apply there beyond what it already sets to the same values. */
@@ -355,16 +349,18 @@ svg.fretboard { display: block; }
 .circle-segment.major.selected { fill: var(--amber); }
 .circle-segment.minor.selected { fill: #c99a3a; }
 
-/* Chord/triad result-card family — shared by chords.html and
-   triad-position.html, which both render a row of chord-card results, each
-   with one fretboard diagram per inversion and a "no voicing" fallback.
-   Each page keeps some pieces local: .chord-inversion (letter-spacing
-   differs) and the .legend/.legend-item/.legend-dot block (a different,
-   page-local legend layout — not the .legend-panel family above, which
-   belongs to modes.html/scales.html and uses the same class names for a
-   different widget). triad-position.html also adds one supplemental
-   property to .chord-card (max-width) and .inversion-row (flex-wrap)
-   locally, since it can show more voicings per card than chords.html does. */
+/* Chord/triad result-card family — used by chords.html, which renders a row
+   of chord-card results, each with one fretboard diagram per inversion (or
+   per string set, in its by-region mode) and a "no voicing" fallback.
+   #key-label, .chord-name, .chord-numeral, .no-chord, and @keyframes fadeUp
+   are also reused by triads.html for its own (differently structured)
+   result groups. chords.html keeps some pieces local: .chord-inversion
+   (letter-spacing differs), the .legend/.legend-item/.legend-dot block (a
+   different, page-local legend layout — not the .legend-panel family above,
+   which belongs to modes.html/scales.html and uses the same class names for
+   a different widget), and a supplemental .chord-card (max-width) /
+   .inversion-row (flex-wrap) override so its by-region mode's four
+   string-set diagrams can fit on one row. */
 #key-label {
   text-align: center;
   font-family: 'Bebas Neue', sans-serif;

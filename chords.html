@@ -69,24 +69,6 @@
       text-align: center;
     }
 
-    select {
-      background: var(--bg);
-      color: var(--cream);
-      border: 1px solid var(--border);
-      padding: 10px 14px;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.85rem;
-      border-radius: 2px;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 30px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
     .type-radios {
       display: flex;
       flex-direction: column;
@@ -105,6 +87,7 @@
       letter-spacing: normal;
       text-transform: none;
       cursor: pointer;
+      -webkit-user-select: none;
       user-select: none;
       transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
     }
