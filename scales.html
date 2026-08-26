@@ -56,10 +56,11 @@
   /* .output, .shapes-grid, .diagram-card, .shape-title, .subtitle,
      .notes-row, .note-badge, .fretboard-scroll/svg.fretboard,
      .legend-panel/.legend-title/.legend/.legend-item/.legend-dot,
-     .output-header, .shapes-count-label, .circle-container,
-     .stave-container, #key-stave, .stave-label, #circle-of-fifths (base),
-     .circle-segment (base + major/minor hover/selected), and .circle-text
-     come from theme.css. */
+     .output-header, .shapes-count-label, .circle-container, and
+     .stave-container come from theme.css. #circle-of-fifths/.circle-segment
+     (base + major/minor hover/selected)/.circle-text come from
+     lib/circle-of-fifths.js; #key-stave/.stave-label come from lib/stave.js
+     — both inject their own CSS. */
 
 </style>
 </head>
@@ -74,17 +75,12 @@
 <div class="controls">
   <div class="control-group control-key">
     <label>Key</label>
-    <div class="circle-container">
-      <svg id="circle-of-fifths" width="450" height="450" viewBox="0 0 400 400"></svg>
-    </div>
+    <div class="circle-container" id="circle-of-fifths-mount"></div>
   </div>
 
   <div class="control-group control-stave">
     <label>Staff</label>
-    <div class="stave-container">
-      <svg id="key-stave" viewBox="0 0 560 173.33"></svg>
-      <div class="stave-label" id="stave-label"></div>
-    </div>
+    <div class="stave-container" id="stave-mount"></div>
   </div>
 
   <div class="control-group control-type">

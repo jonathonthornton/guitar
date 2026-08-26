@@ -2,8 +2,11 @@
    triads.html: color palette, base reset, header/footer chrome, the
    "back to home" link, the pill-style radio control used by the key/type/mode
    selectors, the diagram/output display shared by modes.html and scales.html,
-   and the circle-of-fifths and chord-card widgets shared by chords.html and
-   triads.html (scales.html also uses the circle-of-fifths pieces). */
+   and the chord-card widgets shared by chords.html and triads.html. The
+   circle-of-fifths, stave, region-picker, and string-picker widgets carry
+   their own CSS instead, injected by their own lib/*.js file — this file
+   only keeps the thin .circle-container/.stave-container layout wrappers
+   around them. */
 
 :root {
   --bg: #0a0e1a;
@@ -294,6 +297,13 @@ svg.fretboard { display: block; }
   margin: 0 auto 16px;
 }
 
+/* .circle-container and .stave-container are just layout wrappers placing
+   the circle-of-fifths/stave widgets within a page's own control grid — the
+   widgets' own presentation (#circle-of-fifths/.circle-segment/.circle-text
+   and the two-ring hover/selected states; #key-stave/.stave-label) is
+   injected by lib/circle-of-fifths.js/lib/stave.js instead (see
+   CIRCLE_OF_FIFTHS_CSS/STAVE_CSS there), since those elements are built by
+   that JS rather than living in each page's own static markup. */
 .circle-container {
   display: flex;
   justify-content: flex-start;
@@ -303,51 +313,6 @@ svg.fretboard { display: block; }
 .stave-container {
   margin-top: 4px;
 }
-
-#key-stave {
-  display: block;
-  width: 100%;
-  max-width: 340px;
-  height: auto;
-  margin: 0;
-}
-
-.stave-label {
-  text-align: left;
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  margin-top: 6px;
-  line-height: 1.6;
-}
-
-#circle-of-fifths {
-  width: 100%;
-  max-width: 340px;
-  height: auto;
-}
-
-.circle-segment {
-  cursor: pointer;
-  transition: fill 0.15s ease;
-}
-
-.circle-text {
-  pointer-events: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* Two-ring circle-of-fifths hover/selected states — shared by chords.html,
-   scales.html, and triads.html. modes.html's single-ring wheel uses
-   its own plain .circle-segment:hover/.selected instead (no .major/.minor
-   qualifier, since it only ever renders major-key wedges), so these never
-   apply there beyond what it already sets to the same values. */
-.circle-segment.major:hover { fill: var(--amber-dim); }
-.circle-segment.minor:hover { fill: var(--amber-dim); }
-.circle-segment.major.selected { fill: var(--amber); }
-.circle-segment.minor.selected { fill: #c99a3a; }
 
 /* Chord/triad result-card family — used by chords.html, which renders a row
    of chord-card results, each with one fretboard diagram per inversion (or

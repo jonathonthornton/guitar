@@ -239,142 +239,12 @@
       justify-content: center;
     }
 
-    #circle-of-fifths {
-      width: 100%;
-      max-width: 280px;
-      height: auto;
-    }
+    /* #circle-of-fifths, .circle-segment (base + major/minor hover/selected),
+       and .circle-text are injected by lib/circle-of-fifths.js. */
 
-    /* ── String set picker (fretboard) ───────────────────────────────────────── */
-
-    .string-picker {
-      --fb-bg: #17110d;
-      --fb-rosewood-dark: #241611;
-      --fb-rosewood-mid: #3a2418;
-      --fb-rosewood-light: #4f3320;
-      --fb-fret: #c7bfae;
-      --fb-nut: #ece3d3;
-      --fb-cream-dim: #a89882;
-      --fb-gold: #cba05e;
-      --fb-accent: #e0a940;
-      --fb-tuner: #cfd3d6;
-      --fb-tuner-dark: #8e9296;
-      --fb-wood-btn: #b98450;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .string-picker .board-wrap {
-      position: relative;
-      margin: 0 auto;
-      max-width: 220px;
-    }
-
-    .string-picker svg {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-
-    .string-picker .readout {
-      margin-top: 2px;
-      display: flex;
-      align-items: baseline;
-      justify-content: center;
-      gap: 8px;
-      min-height: 20px;
-    }
-
-    .string-picker .readout .value {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.95rem;
-      letter-spacing: 0.12em;
-      color: var(--amber);
-      transition: opacity 0.15s ease;
-    }
-
-    .string-picker .string-name {
-      font-family: 'DM Mono', monospace;
-      font-size: 15px;
-      fill: var(--fb-cream-dim);
-      text-anchor: middle;
-    }
-
-    .string-picker .string-name.hot {
-      fill: var(--fb-accent);
-    }
-
-    /* ── Fret region picker ──────────────────────────────────────────────────── */
-
-    .region-picker {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .region-picker .neck-wrap {
-      position: relative;
-      max-width: 300px;
-      width: 100%;
-    }
-
-    .region-picker svg {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-
-    .region-segment {
-      cursor: pointer;
-    }
-
-    .region-segment rect.region-fill {
-      fill: transparent;
-      stroke: transparent;
-      transition: fill 0.15s ease, stroke 0.15s ease;
-    }
-
-    .region-segment:hover rect.region-fill {
-      fill: rgba(224, 169, 64, 0.22);
-      stroke: #e0a940;
-      stroke-width: 1.5;
-    }
-
-    .region-segment.selected rect.region-fill {
-      fill: rgba(224, 169, 64, 0.38);
-      stroke: #e0a940;
-      stroke-width: 1.25;
-    }
-
-    .region-segment text {
-      fill: var(--muted);
-      font-family: 'DM Mono', monospace;
-      font-size: 9px;
-      text-anchor: middle;
-      pointer-events: none;
-      transition: fill 0.15s ease;
-    }
-
-    .region-segment.selected text {
-      fill: var(--amber);
-    }
-
-    .region-picker .readout {
-      margin-top: 8px;
-      display: flex;
-      align-items: baseline;
-      justify-content: center;
-      gap: 8px;
-      min-height: 20px;
-    }
-
-    .region-picker .readout .value {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.95rem;
-      letter-spacing: 0.12em;
-      color: var(--amber);
-    }
+    /* .string-picker and everything inside it are injected by
+       lib/string-picker.js. .region-picker and everything inside it are
+       injected by lib/region-picker.js. */
   </style>
 </head>
 
@@ -389,9 +259,7 @@
   <div class="controls">
     <div class="control-group control-key">
       <label>Key</label>
-      <div class="circle-container">
-        <svg id="circle-of-fifths" width="400" height="400" viewBox="0 0 400 400"></svg>
-      </div>
+      <div class="circle-container" id="circle-of-fifths-mount"></div>
     </div>
 
     <div class="control-group control-mode">
@@ -405,91 +273,9 @@
     <div class="control-group control-restrict">
       <label id="restrict-widget-label">String Set</label>
 
-      <div class="string-picker" id="stringset-control">
-        <div class="board-wrap">
-          <svg id="board" viewBox="0 0 468 560" xmlns="http://www.w3.org/2000/svg">
+      <div class="string-picker" id="stringset-control"></div>
 
-            <!-- ===== headstock ===== -->
-            <g id="headstock">
-              <path id="headstockShape" d="M 151.2 46
-                       Q 151.2 30 166.5 30
-                       L 301.5 30
-                       Q 316.8 30 316.8 46
-                       L 309.6 280
-                       Q 307.8 305 288 310
-                       L 180 310
-                       Q 160.2 305 158.4 280
-                       Z" fill="var(--fb-rosewood-mid)" stroke="var(--fb-rosewood-dark)" stroke-width="2" />
-              <!-- subtle grain -->
-              <g id="grain" opacity="0.35" stroke="var(--fb-rosewood-light)" stroke-width="1"></g>
-
-              <!-- lettering (positioned manually in JS — see renderHeadstockLogo) -->
-              <path id="logoArc" d="M 163 84 Q 234 50 305 84" fill="none" />
-              <g id="logoText" font-family="Snell Roundhand, 'Brush Script MT', cursive, Georgia" fill="var(--fb-gold)">
-              </g>
-              <text x="234" y="104" text-anchor="middle" font-family="Georgia, serif" font-size="11"
-                letter-spacing="2.5" fill="var(--fb-gold)">EST. 1966</text>
-
-              <!-- tuners -->
-              <g id="tuners"></g>
-            </g>
-
-            <!-- ===== nut ===== -->
-            <rect x="172" y="310" width="124" height="10" fill="var(--fb-nut)" />
-
-            <!-- ===== fanned strings from tuner posts to nut ===== -->
-            <g id="fanStrings"></g>
-
-            <!-- ===== fretboard ===== -->
-            <g id="fretboard">
-              <rect x="172" y="320" width="124" height="200" fill="var(--fb-rosewood-mid)" />
-              <g id="frets"></g>
-            </g>
-
-            <!-- ===== hover band ===== -->
-            <rect id="hoverBand" x="0" y="0" width="0" height="0" fill="var(--fb-accent)" opacity="0" rx="4" />
-
-            <!-- ===== strings on the board ===== -->
-            <g id="strings"></g>
-
-            <!-- ===== string labels (below board) ===== -->
-            <g id="labels"></g>
-
-            <!-- ===== interaction catcher ===== -->
-            <rect id="catcher" x="172" y="315" width="124" height="220" fill="transparent" style="cursor:pointer" />
-
-          </svg>
-        </div>
-        <div class="readout">
-          <span class="value" id="readoutValue">G B e</span>
-        </div>
-      </div>
-
-      <div class="region-picker" id="region-control" style="display:none">
-        <div class="neck-wrap">
-          <svg id="neck" viewBox="13 0 287 90" xmlns="http://www.w3.org/2000/svg">
-
-            <!-- ===== neck base ===== -->
-            <rect x="20" y="23" width="260" height="34" fill="var(--surface)" stroke="var(--border)" stroke-width="1" />
-
-            <!-- ===== fret ticks ===== -->
-            <g id="fretTicks"></g>
-
-            <!-- ===== position markers ===== -->
-            <g id="positionMarkers"></g>
-
-            <!-- ===== nut ===== -->
-            <rect x="15" y="18" width="5" height="44" fill="var(--cream)" />
-
-            <!-- ===== region overlays (clickable) ===== -->
-            <g id="regions"></g>
-
-          </svg>
-        </div>
-        <div class="readout">
-          <span class="value" id="regionReadout">Open – 3rd fret</span>
-        </div>
-      </div>
+      <div class="region-picker" id="region-control" style="display:none"></div>
     </div>
 
     <div class="control-group">
@@ -557,6 +343,7 @@
 
     function renderCircle() {
       renderCircleOfFifths({
+        maxWidth: 280,
         selectedKey,
         selectedKeyType,
         onSelect: (name, type) => selectKey(name, type),
@@ -604,6 +391,8 @@
     let selectedRegion = REGIONS[0];
 
     buildRegionPicker({
+      align: 'center',
+      neckMaxWidth: 300,
       onSelect: (region) => {
         selectedRegion = region;
         paintRegionPicker(selectedRegion);
