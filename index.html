@@ -18,30 +18,18 @@
   <style>
     /* body padding comes from theme.css. */
 
+    /* Flex (not grid) so the row centers itself as a group when there are
+       fewer cards than fit the container width — a fixed-column grid leaves
+       unfilled trailing tracks empty instead, pushing the real cards to one
+       side. Cards keep a comfortable fixed-ish width and wrap naturally as
+       the viewport narrows, down to one per row on phones. */
     .cards {
       max-width: 1300px;
       margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 24px;
-    }
-
-    @media (max-width: 1050px) {
-      .cards {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-
-    @media (max-width: 700px) {
-      .cards {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 480px) {
-      .cards {
-        grid-template-columns: 1fr;
-      }
     }
 
     .card {
@@ -49,12 +37,21 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
+      flex: 1 1 220px;
+      max-width: 260px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 40px 28px;
       text-decoration: none;
       transition: all 0.2s ease;
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        flex-basis: 100%;
+        max-width: 100%;
+      }
     }
 
     .card:hover {
@@ -93,26 +90,26 @@
 
   <header>
     <h1>Guitar Fretboard Toolkit</h1>
-    <p>Chords &middot; Arpeggios &middot; Scales &middot; Modes</p>
+    <p>Chords &middot; Triads &middot; Scales &middot; Modes</p>
   </header>
 
   <div class="cards">
     <a class="card" href="chord-explorer.html">
       <i class="ti ti-music"></i>
-      <h2>Chord Explorer</h2>
-      <p>Chords restricted by string set or fretboard region</p>
+      <h2>Chords</h2>
+      <p>Chords of various types in a key by string set or fretboard region</p>
     </a>
 
     <a class="card" href="arpeggio-position.html">
       <i class="ti ti-stairs"></i>
-      <h2>Arpeggios and Scales by Position</h2>
-      <p>Arpeggios and scales for each scale degree by position</p>
+      <h2>Triads and Scales</h2>
+      <p>Triads and scales in a key by fretboard region</p>
     </a>
 
     <a class="card" href="scales.html">
       <i class="ti ti-guitar-pick"></i>
       <h2>Scales</h2>
-      <p>Diatonic, pentatonic, triad &amp; blues scale explorer</p>
+      <p>Diatonic, pentatonic, triad &amp; blues scales in a key across the entire fretboard</p>
     </a>
 
     <a class="card" href="modes.html">

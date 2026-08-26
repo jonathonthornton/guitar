@@ -144,6 +144,34 @@
       margin-bottom: 40px;
     }
 
+    /* Info affordance next to #key-label, shown only for chord types with no
+       major/minor form of their own (dim/aug/sus2/sus4) — the tooltip
+       explains that their roots still follow the selected mode's scale
+       degrees even though the title omits "Major"/"Minor". */
+    .key-info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid var(--muted);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      font-style: italic;
+      vertical-align: middle;
+      cursor: help;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .key-info-icon:hover,
+    .key-info-icon:focus-visible {
+      color: var(--amber);
+      border-color: var(--amber);
+      outline: none;
+    }
+
     .chord-inversion {
       font-family: 'DM Mono', monospace;
       font-size: 0.55rem;
@@ -371,8 +399,8 @@
   <a href="index.html" class="back-link">&larr; Toolkit Home</a>
 
   <header>
-    <h1>Chord Explorer</h1>
-    <p>Chords restricted by string set or fretboard region</p>
+    <h1>Chords</h1>
+    <p>Chords by string set or fretboard region</p>
   </header>
 
   <div class="controls">
@@ -799,8 +827,15 @@
 
       const modeLabel = isModeInvariantType ? '' :
         mode === 'major' ? 'Major' : mode === 'minor' ? 'Minor' : '';
-      document.getElementById('key-label').textContent =
-        modeLabel ? `${root} ${modeLabel} — ${typeLabel}` : `${root} — ${typeLabel}`;
+      const titleText = modeLabel ? `${root} ${modeLabel} — ${typeLabel}` : `${root} — ${typeLabel}`;
+      // These chord types have no major/minor form of their own, but their
+      // roots are still drawn from the selected key's scale degrees — call
+      // that out with an optional-read info icon rather than baking it into
+      // the title text itself.
+      const infoIconHTML = isModeInvariantType
+        ? ` <span class="key-info-icon" tabindex="0" title="These chords don&#8217;t have major or minor forms, but their roots still follow the scale degrees of the selected key.">i</span>`
+        : '';
+      document.getElementById('key-label').innerHTML = titleText + infoIconHTML;
 
       const row = document.getElementById('chord-row');
       row.innerHTML = '';
